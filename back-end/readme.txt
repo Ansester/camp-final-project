@@ -54,7 +54,7 @@ Health check: `http://localhost:8081/health`
 4. Copy connection string to `.env`:
 
 ```env
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/camp?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/camp?retryWrites=true&w=majority
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 PORT=8081
 NODE_ENV=development

@@ -88,8 +88,8 @@ git push origin feature/add-dashboard
 
 ```bash
 # Clone the repository
-git clone https://github.com/agile-students-fall2025/4-final-camp.git
-cd 4-final-camp
+git clone https://github.com/Ansester/camp-final-project.git
+cd camp-final-project
 ```
 
 **Backend Setup:**
@@ -117,7 +117,7 @@ npm run dev
 
 **Backend `.env` example:**
 ```env
-MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/camp
+MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/camp
 JWT_SECRET=your_jwt_secret_key
 NODE_ENV=development
 PORT=8081
@@ -174,7 +174,7 @@ npm test
 ## 🧩 How to Contribute
 
 1. **Select or Create an Issue**
-   - Check the [GitHub Project Board](https://github.com/agile-students-fall2025/4-final-camp/projects)
+   - Check the active GitHub Project Board for the repository or team workspace.
    - Find an unassigned task or create a new issue
    - Assign yourself and add the appropriate sprint milestone
 
@@ -290,7 +290,7 @@ For current role assignments, see the [README.md](./README.md#sprint-4-roles)
 ## 💬 Questions or Issues?
 
 1. **Review this document** for answers
-2. **Check [existing GitHub issues](https://github.com/agile-students-fall2025/4-final-camp/issues)** for similar problems
+2. **Check existing GitHub issues** for similar problems
 3. **Post in project discussions** or reach out via team chat
 4. **Contact the Scrum Master** if the issue is urgent or process-related
 

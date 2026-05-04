@@ -16,7 +16,7 @@ Deploys to Digital Ocean on merge to master. Connects via SSH, updates code, res
 
 Add these secrets to repository settings under `Settings` → `Secrets and variables` → `Actions`:
 
-- `DROPLET_IP`: `167.99.121.69`
+- `DROPLET_IP`: Public IP or hostname for the deployment server
 - `SSH_PRIVATE_KEY`: Content of `~/.ssh/digitalocean_rsa` (full private key including BEGIN/END lines)
 
 ## Setup
