@@ -6,11 +6,11 @@ CI/CD workflows for the CAMP application.
 
 ### Continuous Integration (`ci.yml`)
 
-Runs on every pull request and push to master. Tests backend on Node.js 18.x and 20.x, builds and lints frontend.
+Runs on every pull request and push to main. Tests backend on Node.js 18.x and 20.x, builds and lints frontend.
 
 ### Continuous Deployment (`cd.yml`)
 
-Deploys to Digital Ocean on merge to master. Connects via SSH, updates code, restarts services.
+Deploys to Digital Ocean on merge to main. Connects via SSH, updates code, restarts services.
 
 ## Required GitHub Secrets
 
@@ -24,7 +24,7 @@ Add these secrets to repository settings under `Settings` → `Secrets and varia
 1. Add secrets to GitHub (see above)
 2. Enable workflows in repository Actions tab
 3. CI runs on pull requests automatically
-4. CD deploys on merge to master
+4. CD deploys on merge to main
 
 View workflow status in the Actions tab.
 

@@ -2,7 +2,7 @@ name: Continuous Deployment
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   deploy:
@@ -22,7 +22,7 @@ jobs:
             cd /var/www/4-final-camp
             
             # Pull latest changes
-            git pull origin master
+            git pull origin main
             
             # Update backend
             cd back-end
