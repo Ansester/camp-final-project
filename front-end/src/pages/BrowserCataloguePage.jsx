@@ -23,11 +23,12 @@ export default function BrowserCataloguePage({ onNavigate, setSelectedFacility }
           <div className="flex flex-col sm:flex-row sm:items-center items-start sm:space-x-4 space-y-2 sm:space-y-0">
             <button
               onClick={() => onNavigate('home')}
+              aria-label="Back to dashboard"
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ChevronLeft className="w-6 h-6 text-gray-700" />
             </button>
-            <h1 className="text-3xl font-bold text-gray-900">Browser Catalogue</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Browse Catalogue</h1>
           </div>
         </div>
       </div>

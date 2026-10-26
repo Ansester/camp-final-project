@@ -1,37 +1,5 @@
-# GitHub Actions Workflows
+# CI and historical automation
 
-CI/CD workflows for the CAMP application.
+`ci.yml` is the only active workflow. It runs on `main` pushes and pull requests, uses committed lockfiles on Node 22/24, and gates isolated backend integration tests, client lint, stubbed client API tests and the Webpack production build. Failures are not suppressed. It requires no service or deployment credentials.
 
-## Workflows
-
-### Continuous Integration (`ci.yml`)
-
-Runs on every pull request and push to master. Tests backend on Node.js 18.x and 20.x, builds and lints frontend.
-
-### Continuous Deployment (`cd.yml`)
-
-Deploys to Digital Ocean on merge to master. Connects via SSH, updates code, restarts services.
-
-## Required GitHub Secrets
-
-Add these secrets to repository settings under `Settings` → `Secrets and variables` → `Actions`:
-
-- `DROPLET_IP`: `167.99.121.69`
-- `SSH_PRIVATE_KEY`: Content of `~/.ssh/digitalocean_rsa` (full private key including BEGIN/END lines)
-
-## Setup
-
-1. Add secrets to GitHub (see above)
-2. Enable workflows in repository Actions tab
-3. CI runs on pull requests automatically
-4. CD deploys on merge to master
-
-View workflow status in the Actions tab.
-
-## Troubleshooting
-
-**CI Failures:** Check Actions tab logs, ensure tests pass locally.
-
-**CD Failures:** Verify secrets are set correctly, check droplet accessibility, review PM2 logs with `pm2 logs camp-backend`.
-
-**Build Warnings:** `CI=false` is set in workflow to prevent React warnings from failing builds.
+`../archive/cd.yml.disabled` preserves the old DigitalOcean SSH deployment for historical context. `../archive/event-logger.yml.disabled` preserves the coursework event logger. Neither is a GitHub workflow or runs on pushes/PRs. The old remote host, SSH credentials, upstream branch and logging recipient have not been verified. Do not enable them without a fresh explicit deployment/recipient decision. This repository's CI does not establish production readiness or current live hosting.

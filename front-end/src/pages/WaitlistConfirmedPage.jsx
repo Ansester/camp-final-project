@@ -13,7 +13,7 @@ export default function WaitlistConfirmedPage({ onNavigate, waitlistData }) {
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-3">
-            <button
+            <button aria-label="Back to dashboard"
               onClick={() => onNavigate('home')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
             >
@@ -55,14 +55,14 @@ export default function WaitlistConfirmedPage({ onNavigate, waitlistData }) {
             </div>
 
             <p className="text-sm text-gray-600 mt-4">
-              We'll notify you via email when this item becomes available
+              Watch in-app notifications for availability updates
             </p>
           </div>
 
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <h3 className="font-semibold text-gray-900 mb-2">What happens next?</h3>
             <ul className="space-y-1 text-sm text-gray-600">
-              <li>• You'll receive an email notification when the item is available</li>
+              <li>• Check the item page and your in-app notifications for availability</li>
               <li>• You'll have 24 hours to reserve the item</li>
               <li>• Check your notifications regularly for updates</li>
             </ul>

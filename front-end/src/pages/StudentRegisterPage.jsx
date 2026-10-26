@@ -57,7 +57,7 @@ export default function StudentRegisterPage({ onRegister, onBack, onNavigateToLo
         password: formData.password,
         role: 'student'
       });
-      
+
       // Auto-login after successful registration
       if (response.token && response.user) {
         authLogin(response.user, response.token);
@@ -249,7 +249,7 @@ export default function StudentRegisterPage({ onRegister, onBack, onNavigateToLo
 
         <div className="mt-8 pt-6 border-t border-gray-200">
           <p className="text-xs text-gray-500 text-center">
-            Powered by your NetID • Secure • Real-time availability
+            Coursework demo · Local accounts · Fictional transactions
           </p>
         </div>
       </div>

@@ -69,7 +69,7 @@ const checkDueDateNotifications = async () => {
   try {
     const Borrowal = require('../models/Borrowal');
     const Item = require('../models/Item');
-    
+
     // Get active borrowals
     const activeBorrowals = await Borrowal.find({
       status: 'active',
@@ -79,35 +79,22 @@ const checkDueDateNotifications = async () => {
       .populate('item', 'name');
 
     const now = new Date();
-    const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-
     for (const borrowal of activeBorrowals) {
       if (!borrowal.user || !borrowal.item) continue;
-
+      const prefs = borrowal.user.notificationPreferences;
+      if (prefs?.inApp === false || prefs?.reminder?.frequency === 'never') continue;
       const dueDate = new Date(borrowal.dueDate);
-      const daysUntilDue = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
-
-      // Check if we should send a notification (1 day or 3 days before)
-      let shouldNotify = false;
-      let notificationMessage = '';
-      let priority = 'medium';
-
-      if (daysUntilDue === 1) {
-        shouldNotify = true;
-        notificationMessage = `Your item "${borrowal.item.name}" is due tomorrow. Please return it on time to avoid late fees.`;
-        priority = 'high';
-      } else if (daysUntilDue === 3) {
-        shouldNotify = true;
-        notificationMessage = `Your item "${borrowal.item.name}" is due in 3 days (${dueDate.toLocaleDateString()}). Please plan to return it on time.`;
-        priority = 'medium';
-      }
+      const daysUntilDue = Math.ceil((dueDate - now) / 86400000);
+      const leadDays = prefs?.reminder?.startDaysBefore ?? 5;
+      const shouldNotify = daysUntilDue === leadDays;
+      const notificationMessage = `Your item "${borrowal.item.name}" is due in ${daysUntilDue} day(s) (${dueDate.toLocaleDateString()}).`;
+      const priority = daysUntilDue <= 1 ? 'high' : 'medium';
 
       if (shouldNotify) {
         // Check if we already sent a notification for this borrowal today
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         const existingNotification = await Notification.findOne({
           user: borrowal.user._id,
           relatedBorrowal: borrowal._id,
@@ -165,15 +152,15 @@ const checkWaitlistNotifications = async () => {
       .populate('item', 'name quantity availableQuantity status facility');
 
     for (const entry of waitlistEntries) {
-      if (!entry.user || !entry.item) continue;
+      if (!entry.user || !entry.item || entry.user.notificationPreferences?.inApp === false) continue;
 
       const item = entry.item;
-      
+
       // Compute actual availability (same logic as items route)
       const Borrowal = require('../models/Borrowal');
       const Reservation = require('../models/Reservation');
-      
-      const totalQty = item.quantity || 1;
+
+      const totalQty = item.quantity ?? 1;
       const activeBorrowals = await Borrowal.countDocuments({
         item: item._id,
         status: { $in: ['active', 'overdue'] }
@@ -183,7 +170,7 @@ const checkWaitlistNotifications = async () => {
         status: { $in: ['pending', 'confirmed'] }
       });
       const availableQty = Math.max(0, totalQty - activeBorrowals - activeReservations);
-      
+
       // Item is available if status is 'available' and there's at least one unit available
       const isAvailable = item.status === 'available' && availableQty > 0;
 
@@ -191,7 +178,7 @@ const checkWaitlistNotifications = async () => {
         // User is first in line and item is available
         // Check if we already notified them recently (within last hour)
         const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-        
+
         const existingNotification = await Notification.findOne({
           user: entry.user._id,
           relatedItem: entry.item._id,
@@ -314,7 +301,7 @@ const notifyWaitlistForItem = async (itemId) => {
       position: 1
     }).populate('user', 'email notificationPreferences');
 
-    if (!firstInLine || !firstInLine.user) return;
+    if (!firstInLine || !firstInLine.user || firstInLine.user.notificationPreferences?.inApp === false) return;
 
     // Check if we already notified them recently (within last hour)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -341,7 +328,7 @@ const notifyWaitlistForItem = async (itemId) => {
       firstInLine.notifiedAt = new Date();
       firstInLine.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
       await firstInLine.save();
-      
+
       console.log(`Notified user ${firstInLine.user._id} about waitlisted item ${item.name}`);
     }
   } catch (error) {

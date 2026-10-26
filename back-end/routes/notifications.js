@@ -3,14 +3,14 @@ const router = express.Router();
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const { authenticate } = require('../middleware/auth');
-const { validatePagination } = require('../middleware/validation');
+const { validatePagination, validateMongoId, handleValidationErrors } = require('../middleware/validation');
 
 // GET /api/notifications/unread-count - Get unread notification count
 router.get('/unread-count', authenticate, async (req, res) => {
   try {
-    const unreadCount = await Notification.countDocuments({ 
-      user: req.userId, 
-      isRead: false 
+    const unreadCount = await Notification.countDocuments({
+      user: req.userId,
+      isRead: false
     });
     res.json({ unreadCount });
   } catch (error) {
@@ -23,7 +23,7 @@ router.get('/unread-count', authenticate, async (req, res) => {
 router.get('/', authenticate, validatePagination, async (req, res) => {
   try {
     const { unreadOnly, page = 1, limit = 20 } = req.query;
-    
+
     const query = { user: req.userId };
     if (unreadOnly === 'true') query.isRead = false;
 
@@ -56,7 +56,7 @@ router.get('/', authenticate, validatePagination, async (req, res) => {
 });
 
 // PUT /api/notifications/:id/read - Mark notification as read
-router.put('/:id/read', authenticate, async (req, res) => {
+router.put('/:id/read', authenticate, validateMongoId('id'), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -100,8 +100,8 @@ function getDefaults() {
   };
 }
 
-function coercePrefs(input = {}) {
-  const def = getDefaults();
+function coercePrefs(input = {}, current = getDefaults()) {
+  const def = current.toObject ? current.toObject() : current;
   const out = { ...def };
 
   if (typeof input.email === 'boolean') out.email = input.email;
@@ -138,7 +138,10 @@ router.get('/preferences', authenticate, async (req, res) => {
 });
 
 // PUT /api/notifications/preferences - Update notification preferences
-router.put('/preferences', authenticate, async (req, res) => {
+router.put('/preferences', authenticate,
+  require('express-validator').body('reminder.startDaysBefore').optional().isInt({ min: 0, max: 30 }),
+  require('express-validator').body('reminder.frequency').optional().isIn(['daily', 'weekly', 'never']),
+  handleValidationErrors, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
     if (!user) {
@@ -146,7 +149,7 @@ router.put('/preferences', authenticate, async (req, res) => {
     }
 
     const current = user.notificationPreferences || getDefaults();
-    const updates = coercePrefs(req.body);
+    const updates = coercePrefs(req.body, current);
     const merged = {
       email: updates.email ?? current.email,
       sms: updates.sms ?? current.sms,

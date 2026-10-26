@@ -259,7 +259,7 @@ export default function HelpAndPolicies({ onNavigate }) {
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-3">
-            <button
+            <button aria-label="Back to dashboard"
               onClick={() => onNavigate && onNavigate('home')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
             >

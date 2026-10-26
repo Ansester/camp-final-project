@@ -39,7 +39,6 @@ module.exports = {
     }),
     new webpack.DefinePlugin({
       'process.env.REACT_APP_API_BASE': JSON.stringify(process.env.REACT_APP_API_BASE || ''),
-      'process.env.REACT_APP_USE_MOCK': JSON.stringify(process.env.REACT_APP_USE_MOCK || 'true'),
     }),
   ],
   devServer: {

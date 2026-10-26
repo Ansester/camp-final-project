@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ChevronLeft, Search, Filter, X } from 'lucide-react';
 import { useApiData } from '../hooks/useApiData.js';
 
@@ -62,19 +62,21 @@ export default function FilterAndSearchPage({ onNavigate, setSelectedItem }) {
           <div className="flex items-center space-x-3">
             <button
               onClick={() => onNavigate('home')}
+              aria-label="Back to dashboard"
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
             >
               <ChevronLeft className="w-6 h-6 text-gray-700" />
             </button>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Browse Items</h1>
           </div>
-          
+
           {/* Search Bar */}
           <div className="mt-4 flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
+                aria-label="Search equipment"
                 placeholder="Search equipment..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -83,9 +85,12 @@ export default function FilterAndSearchPage({ onNavigate, setSelectedItem }) {
             </div>
             <button
               onClick={() => setShowFilters(!showFilters)}
+              aria-label="Filter equipment"
+              aria-expanded={showFilters}
+              aria-controls="equipment-filters"
               className={`px-4 py-3 rounded-xl border transition-colors flex items-center gap-2 ${
-                activeFilters > 0 
-                  ? 'bg-[#57068C] text-white border-[#57068C]' 
+                activeFilters > 0
+                  ? 'bg-[#57068C] text-white border-[#57068C]'
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
               }`}
             >
@@ -98,7 +103,7 @@ export default function FilterAndSearchPage({ onNavigate, setSelectedItem }) {
 
       {/* Filters Panel */}
       {showFilters && (
-        <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div id="equipment-filters" className="bg-white border-b border-gray-200 shadow-sm">
           <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">Filters</h3>
@@ -108,11 +113,12 @@ export default function FilterAndSearchPage({ onNavigate, setSelectedItem }) {
                 </button>
               )}
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Category</label>
+                <label htmlFor="equipment-category" className="block text-sm font-medium text-gray-600 mb-1">Category</label>
                 <select
+                  id="equipment-category"
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#57068C] focus:border-transparent text-sm"
@@ -121,8 +127,9 @@ export default function FilterAndSearchPage({ onNavigate, setSelectedItem }) {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Location</label>
+                <label htmlFor="equipment-location" className="block text-sm font-medium text-gray-600 mb-1">Location</label>
                 <select
+                  id="equipment-location"
                   value={selectedFacility}
                   onChange={(e) => setSelectedFacility(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#57068C] focus:border-transparent text-sm"
@@ -157,7 +164,7 @@ export default function FilterAndSearchPage({ onNavigate, setSelectedItem }) {
             </span>
           </div>
         )}
-        
+
         {/* Results Count */}
         <p className="text-sm text-gray-500 mb-3">
           {loading ? 'Loading...' : `${filteredItems.length} item${filteredItems.length !== 1 ? 's' : ''} found`}
@@ -181,10 +188,11 @@ export default function FilterAndSearchPage({ onNavigate, setSelectedItem }) {
               const totalQty = item.quantity ?? 1;
               const availableQty = item.availableQuantity ?? (item.status === 'available' ? totalQty : 0);
               return (
-                <div
+                <button
+                  type="button"
                   key={item._id || item.id}
                   onClick={() => handleItemClick(item)}
-                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:border-violet-200 transition-all cursor-pointer"
+                  className="w-full text-left bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:border-violet-200 transition-all cursor-pointer"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
@@ -207,7 +215,7 @@ export default function FilterAndSearchPage({ onNavigate, setSelectedItem }) {
                       {availableQty > 0 ? 'Available' : 'Unavailable'}
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>

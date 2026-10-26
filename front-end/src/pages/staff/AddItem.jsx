@@ -19,7 +19,7 @@ const AddItem = ({ onNavigate }) => {
     initialData: { filters: { categories: [], facilities: [] } }
   });
 
-  
+
   const categories = useMemo(
     () => (data?.filters?.categories ?? []).filter((category) => category !== 'All'),
     [data?.filters?.categories]
@@ -29,7 +29,7 @@ const AddItem = ({ onNavigate }) => {
     [data?.filters?.facilities]
   );
 
-  
+
   useEffect(() => {
     if (( !formData.category && categories.length) || (!formData.location && facilities.length)) {
       setFormData(prev => {
@@ -80,7 +80,7 @@ const AddItem = ({ onNavigate }) => {
       return;
     }
 
-    
+
     const payload = {
       name: formData.itemName.trim(),
       description: formData.description?.trim() || 'No description provided',
@@ -88,7 +88,7 @@ const AddItem = ({ onNavigate }) => {
       facility: selectedFacility._id,
       condition: (formData.condition || 'Good').toLowerCase(),
       serialNumber: formData.serialId.trim(),
-      
+
     };
 
     try {
@@ -114,7 +114,7 @@ const AddItem = ({ onNavigate }) => {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <button
+          <button aria-label="Back to inventory"
             onClick={() => onNavigate('inventory')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >

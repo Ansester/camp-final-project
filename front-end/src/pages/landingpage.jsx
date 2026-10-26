@@ -11,8 +11,8 @@ export default function LandingPage({ onSelectRole }) {
         </h1>
 
         <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-12">
-          One platform for all your campus borrowing needs. From cameras to lab kits,
-          reserve equipment across all facilities in seconds.
+          Explore a coursework prototype for reserving equipment and managing loans.
+          Student and staff accounts demonstrate the two sides of the workflow.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-20">
@@ -65,7 +65,7 @@ export default function LandingPage({ onSelectRole }) {
       </main>
 
       <footer className="px-6 py-8 text-center text-gray-500 text-sm">
-        <p>Powered by your NetID • Secure • Real-time availability</p>
+        <p>Coursework demo · Local accounts · Fictional transactions</p>
       </footer>
     </div>
   );

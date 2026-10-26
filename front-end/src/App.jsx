@@ -4,42 +4,42 @@
  * Integrates AuthContext for global authentication management
  * Related to User Story #43 (Landing/Home Page), Task #698
  */
-import React, { useEffect, useState } from "react";
+import React, { lazy, Suspense, useState } from "react";
 import { useAuth } from "./context/AuthContext.jsx";
 import { Home } from "lucide-react";
 
-import HomePage from "./pages/HomePage";
-import FilterAndSearchPage from "./pages/FilterAndSearchPage";
-import ItemDetailPage from "./pages/ItemDetailPage";
-import ReserveDateTimePage from "./pages/ReserveDateTimePage";
-import ReservationConfirmedPage from "./pages/ReservationConfirmedPage";
-import WaitlistConfirmedPage from "./pages/WaitlistConfirmedPage";
-import MyBorrowalsPage from "./pages/MyBorrowalsPage";
-import MyReservationsPage from "./pages/MyReservationsPage";
-import ProfileAndSettingsPage from "./pages/ProfileAndSettingsPage";
-import FinesPage from "./pages/FinesPage";
-import PayFinePage from "./pages/PayFinePage";
-import PaymentSuccessPage from "./pages/PaymentSuccessPage";
-import HelpAndPoliciesPage from "./pages/HelpAndPoliciesPage";
+const HomePage = lazy(() => import("./pages/HomePage"));
+const FilterAndSearchPage = lazy(() => import("./pages/FilterAndSearchPage"));
+const ItemDetailPage = lazy(() => import("./pages/ItemDetailPage"));
+const ReserveDateTimePage = lazy(() => import("./pages/ReserveDateTimePage"));
+const ReservationConfirmedPage = lazy(() => import("./pages/ReservationConfirmedPage"));
+const WaitlistConfirmedPage = lazy(() => import("./pages/WaitlistConfirmedPage"));
+const MyBorrowalsPage = lazy(() => import("./pages/MyBorrowalsPage"));
+const MyReservationsPage = lazy(() => import("./pages/MyReservationsPage"));
+const ProfileAndSettingsPage = lazy(() => import("./pages/ProfileAndSettingsPage"));
+const FinesPage = lazy(() => import("./pages/FinesPage"));
+const PayFinePage = lazy(() => import("./pages/PayFinePage"));
+const PaymentSuccessPage = lazy(() => import("./pages/PaymentSuccessPage"));
+const HelpAndPoliciesPage = lazy(() => import("./pages/HelpAndPoliciesPage"));
 
-import StaffDashboard from "./pages/staff/StaffDashboard.jsx";
-import Inventory from "./pages/staff/Inventory.jsx";
-import CheckOut from "./pages/staff/CheckOut.jsx";
-import CheckIn from "./pages/staff/CheckIn.jsx";
-import Reservations from "./pages/staff/Reservations.jsx";
-import Overdue from "./pages/staff/Overdue.jsx";
-import ManageFines from "./pages/staff/ManageFines.jsx";
-import AddItem from "./pages/staff/AddItem.jsx";
-import EditItem from "./pages/staff/EditItem.jsx";
+const StaffDashboard = lazy(() => import("./pages/staff/StaffDashboard.jsx"));
+const Inventory = lazy(() => import("./pages/staff/Inventory.jsx"));
+const CheckOut = lazy(() => import("./pages/staff/CheckOut.jsx"));
+const CheckIn = lazy(() => import("./pages/staff/CheckIn.jsx"));
+const Reservations = lazy(() => import("./pages/staff/Reservations.jsx"));
+const Overdue = lazy(() => import("./pages/staff/Overdue.jsx"));
+const ManageFines = lazy(() => import("./pages/staff/ManageFines.jsx"));
+const AddItem = lazy(() => import("./pages/staff/AddItem.jsx"));
+const EditItem = lazy(() => import("./pages/staff/EditItem.jsx"));
 
 import LandingPage from "./pages/landingpage.jsx";
-import StudentLoginPage from "./pages/StudentLoginPage.jsx";
-import StudentRegisterPage from "./pages/StudentRegisterPage.jsx";
-import StaffLoginPage from "./pages/staff/StaffLoginPage.jsx";
+const StudentLoginPage = lazy(() => import("./pages/StudentLoginPage.jsx"));
+const StudentRegisterPage = lazy(() => import("./pages/StudentRegisterPage.jsx"));
+const StaffLoginPage = lazy(() => import("./pages/staff/StaffLoginPage.jsx"));
 import Protected from "./components/Protected.jsx";
 import NotificationInbox from "./components/NotificationInbox.jsx";
 
-export default function App() {
+function AppContent() {
   const { role, logout, isAuthenticated, initializing } = useAuth();
   const [authPage, setAuthPage] = useState(null); // 'studentLogin', 'studentRegister', 'staffLogin', or null
   const [currentPage, setCurrentPage] = useState("home");
@@ -72,15 +72,6 @@ export default function App() {
     setAuthPage(null);
   };
 
-  // When role becomes available (auto-login), set default page
-  useEffect(() => {
-    if (!initializing && role) {
-      if (role === 'staff') setCurrentPage('dashboard');
-      else if (role === 'student') setCurrentPage('home');
-      setAuthPage(null); // Ensure auth pages hidden when authenticated
-    }
-  }, [role, initializing]);
-
   if (initializing) {
     return <div className="p-8 text-center text-gray-600">Initializing session...</div>;
   }
@@ -91,7 +82,7 @@ export default function App() {
   }
 
   // Show authentication pages
-  if (authPage === "studentLogin") {
+  if (!isAuthenticated && authPage === "studentLogin") {
     return (
       <StudentLoginPage
         onBack={handleBackToLanding}
@@ -100,7 +91,7 @@ export default function App() {
     );
   }
 
-  if (authPage === "studentRegister") {
+  if (!isAuthenticated && authPage === "studentRegister") {
     return (
       <StudentRegisterPage
         onRegister={handleStudentRegister}
@@ -110,7 +101,7 @@ export default function App() {
     );
   }
 
-  if (authPage === "staffLogin") {
+  if (!isAuthenticated && authPage === "staffLogin") {
     return (
       <StaffLoginPage
         onBack={handleBackToLanding}
@@ -127,14 +118,14 @@ export default function App() {
       } else {
         setStaffPrefillData(null);
       }
-      
+
       // Handle item selection for other pages
       if (data?.item) {
         setSelectedItem(data.item);
       } else if (data && !data.prefillStudent) {
         setSelectedItem(data);
       }
-      
+
       setCurrentPage(page);
     };
 
@@ -151,6 +142,7 @@ export default function App() {
                 onClick={() => setCurrentPage('dashboard')}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 title="Dashboard"
+                aria-label="Dashboard"
               >
                 <Home className="w-5 h-5 text-[#57068C]" />
               </button>
@@ -177,7 +169,7 @@ export default function App() {
           {currentPage === "reservations" && <Reservations {...shared} />}
           {currentPage === "overdue" && <Overdue {...shared} />}
           {currentPage === "fines" && <ManageFines {...shared} prefillData={staffPrefillData} />}
-          
+
           {currentPage === "additem" && <AddItem {...shared} />}
           {currentPage === "edititem" && <EditItem {...shared} itemData={selectedItem} />}
 
@@ -200,6 +192,7 @@ export default function App() {
               onClick={() => setCurrentPage('home')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               title="Home"
+              aria-label="Home"
             >
               <Home className="w-5 h-5 text-[#57068C]" />
             </button>
@@ -263,4 +256,8 @@ export default function App() {
       </Protected>
     );
   }
+}
+
+export default function App() {
+  return <Suspense fallback={<p role="status" className="p-8 text-center text-gray-600">Loading page…</p>}><AppContent /></Suspense>;
 }

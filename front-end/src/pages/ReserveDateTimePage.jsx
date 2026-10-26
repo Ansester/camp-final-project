@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ChevronLeft, Calendar, Clock } from 'lucide-react';
 import { api } from '../services/api.js';
 
@@ -9,7 +9,7 @@ export default function ReserveDateTimePage({ onNavigate, selectedItem, setReser
     d.setDate(d.getDate() + 1);
     return d.toISOString().slice(0, 10);
   }, []);
-  
+
   const [selectedDate, setSelectedDate] = useState(tomorrow);
   const [selectedTime, setSelectedTime] = useState('10:00');
 
@@ -89,7 +89,7 @@ export default function ReserveDateTimePage({ onNavigate, selectedItem, setReser
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-3">
-            <button
+            <button aria-label="Back to item details"
               onClick={() => onNavigate('itemDetail')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
             >
@@ -124,6 +124,7 @@ export default function ReserveDateTimePage({ onNavigate, selectedItem, setReser
           <div className="relative">
             <input
               type="date"
+              aria-label="Pickup date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               min={minDate}
@@ -177,7 +178,7 @@ export default function ReserveDateTimePage({ onNavigate, selectedItem, setReser
           disabled={!selectedDate || !selectedTime}
           className="w-full py-4 bg-gray-300 text-gray-700 font-bold text-lg rounded-xl hover:bg-gray-400 transition-colors shadow-sm"
         >
-          Next: Review
+          Confirm reservation
         </button>
 
         <button

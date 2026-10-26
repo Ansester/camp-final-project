@@ -18,7 +18,7 @@ const Reservations = ({ onNavigate }) => {
   const filteredReservations = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
@@ -97,7 +97,7 @@ const Reservations = ({ onNavigate }) => {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <button
+          <button aria-label="Back to staff dashboard"
             onClick={() => onNavigate('dashboard')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >

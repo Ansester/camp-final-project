@@ -1,130 +1,40 @@
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../services/api.js';
 
-/**
- * Hook to fetch data from the backend API
- * @param {string} resourceKey - The API method to call
- * @param {object} options - Options including params and transform function
- */
+function loadResource(key, params) {
+  const userMethods = { dashboard: 'dashboard', borrowals: 'borrowals', fines: 'fines', paymentHistory: 'paymentsHistory', profile: 'profile' };
+  if (key in userMethods) {
+    if (!params.userId) throw new Error(`A signed-in user is required for ${key}`);
+    return api[userMethods[key]](params.userId);
+  }
+  if (key === 'reservationSlots') return api.reservationSlots(params);
+  const methods = ['reservations', 'items', 'staffDashboard', 'staffInventory', 'staffReservations', 'staffOverdue', 'students'];
+  if (!methods.includes(key)) throw new Error(`Unknown resource key: ${key}`);
+  return api[key]();
+}
+
 export function useApiData(resourceKey, options = {}) {
   const { initialData, transform, params } = options;
   const [data, setData] = useState(initialData ?? null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Stringify params to create a stable dependency
-  const paramsKey = useMemo(() => JSON.stringify(params), [params?.userId, params?.facility, params?.date]);
-
+  const [revision, setRevision] = useState(0);
+  // Value-stable parameters avoid refetch loops from inline option objects.
+  const paramsKey = JSON.stringify(params ?? {});
+  const stableParams = useMemo(() => JSON.parse(paramsKey), [paramsKey]);
+  const transformRef = useRef(transform);
+  useEffect(() => { transformRef.current = transform; }, [transform]);
   useEffect(() => {
-    let isMounted = true;
-
-    const run = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        let result;
-        // Call the appropriate API method
-        if (resourceKey === 'dashboard' && params?.userId) {
-          result = await api.dashboard(params.userId);
-        } else if (resourceKey === 'borrowals' && params?.userId) {
-          result = await api.borrowals(params.userId);
-        } else if (resourceKey === 'reservations') {
-          result = await api.reservations();
-        } else if (resourceKey === 'fines' && params?.userId) {
-          result = await api.fines(params.userId);
-        } else if (resourceKey === 'paymentHistory' && params?.userId) {
-          result = await api.paymentsHistory(params.userId);
-        } else if (resourceKey === 'profile' && params?.userId) {
-          result = await api.profile(params.userId);
-        } else if (resourceKey === 'items') {
-          result = await api.items();
-        } else if (resourceKey === 'reservationSlots') {
-          result = await api.reservationSlots(params);
-        } else if (resourceKey === 'staffDashboard') {
-          result = await api.staffDashboard();
-        } else if (resourceKey === 'staffInventory') {
-          result = await api.staffInventory();
-        } else if (resourceKey === 'staffReservations') {
-          result = await api.staffReservations();
-        } else if (resourceKey === 'staffOverdue') {
-          result = await api.staffOverdue();
-        } else if (resourceKey === 'students') {
-          result = await api.students();
-        } else {
-          throw new Error(`Unknown resource key: ${resourceKey}`);
-        }
-
-        if (!isMounted) return;
-        
-        const nextData = typeof transform === 'function' ? transform(result) : result;
-        setData(nextData);
-      } catch (err) {
-        if (!isMounted) return;
-        setError(err instanceof Error ? err : new Error('Unknown data load error'));
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    run();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [resourceKey, paramsKey]); // Only re-run when resourceKey or params values actually change
-
-  const refetch = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      let result;
-      if (resourceKey === 'dashboard' && params?.userId) {
-        result = await api.dashboard(params.userId);
-      } else if (resourceKey === 'borrowals' && params?.userId) {
-        result = await api.borrowals(params.userId);
-      } else if (resourceKey === 'reservations') {
-        result = await api.reservations();
-      } else if (resourceKey === 'fines' && params?.userId) {
-        result = await api.fines(params.userId);
-      } else if (resourceKey === 'paymentHistory' && params?.userId) {
-        result = await api.paymentsHistory(params.userId);
-      } else if (resourceKey === 'profile' && params?.userId) {
-        result = await api.profile(params.userId);
-      } else if (resourceKey === 'items') {
-        result = await api.items();
-      } else if (resourceKey === 'reservationSlots') {
-        result = await api.reservationSlots(params);
-      } else if (resourceKey === 'staffDashboard') {
-        result = await api.staffDashboard();
-      } else if (resourceKey === 'staffInventory') {
-        result = await api.staffInventory();
-      } else if (resourceKey === 'staffReservations') {
-        result = await api.staffReservations();
-      } else if (resourceKey === 'staffOverdue') {
-        result = await api.staffOverdue();
-      } else if (resourceKey === 'students') {
-        result = await api.students();
-      } else {
-        throw new Error(`Unknown resource key: ${resourceKey}`);
-      }
-
-      const nextData = typeof transform === 'function' ? transform(result) : result;
-      setData(nextData);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown data load error'));
-    } finally {
-      setLoading(false);
-    }
-  }, [resourceKey, paramsKey]);
-
-  return {
-    data,
-    loading,
-    error,
-    refetch
-  };
+    let active = true;
+    setLoading(true);
+    setError(null);
+    Promise.resolve().then(() => loadResource(resourceKey, stableParams)).then(result => {
+      if (active) setData(typeof transformRef.current === 'function' ? transformRef.current(result) : result);
+    }).catch(err => {
+      if (active) setError(err instanceof Error ? err : new Error('Data load failed'));
+    }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [resourceKey, stableParams, revision]);
+  const refetch = useCallback(() => setRevision(value => value + 1), []);
+  return { data, loading, error, refetch };
 }

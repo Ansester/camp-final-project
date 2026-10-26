@@ -9,7 +9,7 @@ const { validateMongoId, validatePagination } = require('../middleware/validatio
 router.get("/", authenticate, authorize('staff', 'admin'), validatePagination, async (req, res) => {
   try {
     const { role, page = 1, limit = 50, search } = req.query;
-    
+
     const query = { isActive: true };
     if (role) query.role = role;
     if (search) {
@@ -32,7 +32,7 @@ router.get("/", authenticate, authorize('staff', 'admin'), validatePagination, a
     const usersWithFines = await Promise.all(users.map(async (user) => {
       const fines = await Fine.find({ user: user._id, status: 'pending' })
         .select('amount reason description');
-      
+
       return {
         id: user._id,
         name: user.fullName,
@@ -62,9 +62,9 @@ router.get("/", authenticate, authorize('staff', 'admin'), validatePagination, a
     });
   } catch (error) {
     console.error('Error fetching users:', error);
-    res.status(500).json({ 
-      error: 'Internal Server Error', 
-      message: 'Failed to fetch users' 
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch users'
     });
   }
 });
@@ -73,21 +73,21 @@ router.get("/", authenticate, authorize('staff', 'admin'), validatePagination, a
 router.get("/:userId", authenticate, validateMongoId('userId'), async (req, res) => {
   try {
     const { userId } = req.params;
-    
+
     // Users can only view their own profile unless they're staff
     if (req.userId.toString() !== userId && !['staff', 'admin'].includes(req.userRole)) {
-      return res.status(403).json({ 
-        error: 'Forbidden', 
-        message: 'Access denied' 
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'Access denied'
       });
     }
 
     const user = await User.findById(userId).select('-password');
-    
+
     if (!user || !user.isActive) {
-      return res.status(404).json({ 
-        error: 'Not Found', 
-        message: 'User not found' 
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'User not found'
       });
     }
 
@@ -97,19 +97,15 @@ router.get("/:userId", authenticate, validateMongoId('userId'), async (req, res)
       netId: user.netId,
       phone: user.phone,
       campusCashBalance: user.campusCashBalance || 0,
-      notificationPreferences: {
-        email: true,
-        sms: false,
-        shareData: true
-      }
+      notificationPreferences: user.notificationPreferences
     };
 
     res.json({ student });
   } catch (error) {
     console.error('Error fetching user:', error);
-    res.status(500).json({ 
-      error: 'Internal Server Error', 
-      message: 'Failed to fetch user' 
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch user'
     });
   }
 });
@@ -118,18 +114,18 @@ router.get("/:userId", authenticate, validateMongoId('userId'), async (req, res)
 router.put("/:userId", authenticate, validateMongoId('userId'), async (req, res) => {
   try {
     const { userId } = req.params;
-    
+
     // Users can only update their own profile unless they're staff
     if (req.userId.toString() !== userId && !['staff', 'admin'].includes(req.userRole)) {
-      return res.status(403).json({ 
-        error: 'Forbidden', 
-        message: 'Access denied' 
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'Access denied'
       });
     }
 
     const allowedUpdates = ['firstName', 'lastName', 'phone'];
     const updates = {};
-    
+
     allowedUpdates.forEach(field => {
       if (req.body[field]) updates[field] = req.body[field];
     });
@@ -137,13 +133,13 @@ router.put("/:userId", authenticate, validateMongoId('userId'), async (req, res)
     const user = await User.findByIdAndUpdate(
       userId,
       updates,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     ).select('-password');
 
     if (!user) {
-      return res.status(404).json({ 
-        error: 'Not Found', 
-        message: 'User not found' 
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'User not found'
       });
     }
 
@@ -153,9 +149,9 @@ router.put("/:userId", authenticate, validateMongoId('userId'), async (req, res)
     });
   } catch (error) {
     console.error('Error updating user:', error);
-    res.status(500).json({ 
-      error: 'Internal Server Error', 
-      message: 'Failed to update user' 
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to update user'
     });
   }
 });
@@ -163,59 +159,57 @@ router.put("/:userId", authenticate, validateMongoId('userId'), async (req, res)
 // POST /api/users/add-funds - Add Campus Cash funds (staff only)
 router.post("/add-funds", authenticate, authorize('staff', 'admin'), async (req, res) => {
   try {
-    const { userId, amount, method } = req.body;
-    
+    const { userId, amount } = req.body;
+
     if (!userId || !amount) {
-      return res.status(400).json({ 
-        error: 'Bad Request', 
-        message: 'userId and amount are required' 
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'userId and amount are required'
       });
     }
 
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      return res.status(400).json({ 
-        error: 'Bad Request', 
-        message: 'Amount must be a positive number' 
+    const parsedAmount = Number(amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'Amount must be a positive number'
       });
     }
 
-    const user = await User.findById(userId);
-    if (!user || !user.isActive) {
-      return res.status(404).json({ 
-        error: 'Not Found', 
-        message: 'User not found' 
-      });
-    }
-
-    user.campusCashBalance = (user.campusCashBalance || 0) + parsedAmount;
-    await user.save();
+    if (!require('mongoose').isValidObjectId(userId)) return res.status(400).json({ error: 'Invalid user ID' });
+    const user = await User.findOneAndUpdate(
+      { _id: userId, isActive: true },
+      { $inc: { campusCashBalance: parsedAmount } },
+      { returnDocument: 'after', runValidators: true }
+    );
+    if (!user) return res.status(404).json({ error: 'User not found' });
 
     res.json({
       message: 'Funds added successfully',
       newBalance: user.campusCashBalance,
       addedAmount: parsedAmount,
-      method: method || 'cash'
+      method: 'demo-credit',
+      demo: true
     });
   } catch (error) {
     console.error('Error adding funds:', error);
-    res.status(500).json({ 
-      error: 'Internal Server Error', 
-      message: 'Failed to add funds' 
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to add funds'
     });
   }
 });
 
 // Legacy endpoints for backwards compatibility
 router.post("/login", (req, res) => {
-  res.status(301).json({ 
+  res.status(301).json({
     message: 'Please use /api/auth/login endpoint',
     redirect: '/api/auth/login'
   });
 });
 
 router.post("/register", (req, res) => {
-  res.status(301).json({ 
+  res.status(301).json({
     message: 'Please use /api/auth/register endpoint',
     redirect: '/api/auth/register'
   });

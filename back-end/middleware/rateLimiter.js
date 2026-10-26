@@ -2,7 +2,7 @@ const rateLimit = require('express-rate-limit');
 
 /**
  * General rate limiter for all API requests
- * DISABLED in development for easier testing
+ * Higher request allowance in development and isolated tests
  */
 const generalLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
@@ -17,7 +17,7 @@ const generalLimiter = rateLimit({
 
 /**
  * Strict rate limiter for authentication routes
- * DISABLED in development for easier testing
+ * Higher request allowance in development and isolated tests
  */
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes

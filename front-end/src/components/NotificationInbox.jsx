@@ -151,7 +151,7 @@ export default function NotificationInbox() {
                     <CheckCheck className="w-4 h-4 inline mr-1" /> Mark all
                   </button>
                 )}
-                <button onClick={() => setIsOpen(false)}>
+                <button aria-label="Close notifications" onClick={() => setIsOpen(false)}>
                   <X className="w-4 h-4" />
                 </button>
               </div>

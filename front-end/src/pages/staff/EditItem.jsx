@@ -15,7 +15,7 @@ const EditItem = ({ onNavigate, itemData }) => {
     description: '',
     available: true
   });
-  
+
   // Track the original item ID for API calls
   const itemId = itemData?._id || itemData?.id;
 
@@ -37,7 +37,7 @@ const EditItem = ({ onNavigate, itemData }) => {
     if (itemData) {
       // Determine if item is available (not in maintenance/retired status)
       const isAvailable = itemData.status !== 'maintenance' && itemData.status !== 'retired';
-      
+
       setFormData({
         itemName: itemData.name || '',
         category: itemData.category || '',
@@ -84,9 +84,9 @@ const EditItem = ({ onNavigate, itemData }) => {
 
     try {
       const qty = parseInt(formData.quantity, 10) || 1;
-      
+
       // When toggling availability OFF:
-      // - Set status to 'maintenance' 
+      // - Set status to 'maintenance'
       // - Set quantityAvailable to 0 (all units unavailable)
       // When toggling availability ON:
       // - Set status to 'available'
@@ -103,7 +103,7 @@ const EditItem = ({ onNavigate, itemData }) => {
       };
 
       await api.updateItem(itemId, payload);
-      
+
       alert('Item updated successfully!');
       onNavigate('inventory');
     } catch (err) {
@@ -125,7 +125,7 @@ const EditItem = ({ onNavigate, itemData }) => {
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-4 mb-6">
-            <button onClick={() => onNavigate('inventory')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <button aria-label="Back to inventory" onClick={() => onNavigate('inventory')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
               <ArrowLeft className="w-6 h-6 text-gray-600" />
             </button>
             <h1 className="text-3xl font-bold text-gray-900">Edit Item</h1>
@@ -146,7 +146,7 @@ const EditItem = ({ onNavigate, itemData }) => {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <button
+          <button aria-label="Back to inventory"
             onClick={() => onNavigate('inventory')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
@@ -301,7 +301,7 @@ const EditItem = ({ onNavigate, itemData }) => {
                   Available for borrowing
                 </label>
                 <p className="text-xs text-gray-500 mt-1">
-                  {formData.available 
+                  {formData.available
                     ? `All ${formData.quantity} unit(s) will be available for checkout`
                     : `All ${formData.quantity} unit(s) will be marked unavailable`
                   }
@@ -317,7 +317,7 @@ const EditItem = ({ onNavigate, itemData }) => {
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-violet-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-500"></div>
               </label>
             </div>
-            
+
             {/* Warning when making unavailable */}
             {!formData.available && (
               <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">

@@ -3,8 +3,7 @@ import { ChevronLeft } from 'lucide-react';
 
 export default function PaymentSuccessPage({ onNavigate, paymentResult }) {
   if (!paymentResult) {
-    onNavigate('fines');
-    return null;
+    return <button onClick={() => onNavigate('fines')}>Choose a fine</button>;
   }
 
   return (
@@ -13,13 +12,13 @@ export default function PaymentSuccessPage({ onNavigate, paymentResult }) {
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-3">
-            <button
+            <button aria-label="Back to fines"
               onClick={() => onNavigate('fines')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
             >
               <ChevronLeft className="w-6 h-6 text-gray-700" />
             </button>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Payment Success</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Demo payment recorded</h1>
           </div>
         </div>
       </div>
@@ -28,7 +27,7 @@ export default function PaymentSuccessPage({ onNavigate, paymentResult }) {
         {/* Success Details */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-            Payment Successful
+            Demo payment recordedful
           </h2>
 
           <div className="space-y-3 mb-4">
@@ -51,14 +50,14 @@ export default function PaymentSuccessPage({ onNavigate, paymentResult }) {
           </div>
 
           <p className="text-sm text-gray-600 text-center mt-4">
-            A copy has been sent to {paymentResult.email}
+            Recorded in this local demo. No real payment or email was sent.
           </p>
         </div>
 
         {/* Next Steps */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h3 className="text-xl font-bold text-gray-900 mb-4">Next steps</h3>
-          
+
           <ul className="space-y-2 text-gray-700">
             <li className="flex items-start">
               <span className="mr-2">•</span>

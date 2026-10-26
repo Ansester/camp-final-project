@@ -23,7 +23,7 @@ router.get("/", authenticate, async (req, res) => {
         id: `overdue-${b._id}`,
         type: 'overdue',
         severity: 'high',
-        message: `${b.item.name} is overdue by ${b.daysOverdue} day(s)`,
+        message: `${b.item?.name || 'Unknown item'} is overdue by ${b.daysOverdue} day(s)`,
         createdAt: b.dueDate
       });
     });
@@ -31,7 +31,7 @@ router.get("/", authenticate, async (req, res) => {
     // Check for items due soon (within 24 hours)
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
+
     const dueSoonItems = await Borrowal.find({
       user: req.userId,
       status: 'active',
@@ -45,15 +45,17 @@ router.get("/", authenticate, async (req, res) => {
         id: `due-soon-${b._id}`,
         type: 'due-soon',
         severity: 'medium',
-        message: `${b.item.name} is due soon (${b.dueDate.toLocaleDateString()})`,
-        createdAt: b.checkedOutAt
+        message: `${b.item?.name || 'Unknown item'} is due soon (${b.dueDate.toLocaleDateString()})`,
+        createdAt: b.checkoutDate
       });
     });
 
     // Check for ready reservations
     const readyReservations = await Reservation.find({
       user: req.userId,
-      status: 'ready'
+      status: 'confirmed',
+      pickupDate: { $lte: new Date() },
+      expiryDate: { $gt: new Date() }
     })
       .populate('item', 'name')
       .limit(10);
@@ -63,7 +65,7 @@ router.get("/", authenticate, async (req, res) => {
         id: `reservation-${r._id}`,
         type: 'reservation-ready',
         severity: 'medium',
-        message: `${r.item.name} is ready for pickup`,
+        message: `${r.item?.name || 'Unknown item'} is ready for pickup`,
         createdAt: r.updatedAt
       });
     });

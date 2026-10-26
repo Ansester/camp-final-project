@@ -6,7 +6,7 @@ import { authUtils } from '../utils/auth.js';
 export default function FinesPage({ onNavigate, setSelectedFine }) {
   const [activeTab, setActiveTab] = useState('fines');
   const userId = authUtils.getUserId();
-  
+
   const { data: finesData, loading: finesLoading, error: finesError, refetch: refetchFines } = useApiData('fines', {
     initialData: { fines: [] },
     params: { userId }
@@ -19,10 +19,10 @@ export default function FinesPage({ onNavigate, setSelectedFine }) {
 
   const fines = finesData?.fines ?? [];
   const payments = paymentsData?.payments ?? [];
-  
+
   const unpaidFines = fines.filter(f => f.status === 'Unpaid' || f.status === 'pending');
   const paidFines = fines.filter(f => f.status === 'Paid' || f.status === 'paid');
-  
+
   const totalUnpaid = unpaidFines.reduce((sum, f) => sum + (f.amount || 0), 0);
 
   const handlePayFine = (fine) => {
@@ -36,7 +36,7 @@ export default function FinesPage({ onNavigate, setSelectedFine }) {
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-3">
-            <button
+            <button aria-label="Back to dashboard"
               onClick={() => onNavigate('home')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
             >

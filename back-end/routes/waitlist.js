@@ -4,13 +4,15 @@ const Waitlist = require('../models/Waitlist');
 const Item = require('../models/Item');
 const { authenticate } = require('../middleware/auth');
 const { validateMongoId } = require('../middleware/validation');
+const { body } = require('express-validator');
+const { handleValidationErrors } = require('../middleware/validation');
 
 // GET /api/waitlist - Get user's waitlist entries
 r.get('/', authenticate, async (req, res) => {
   try {
     // Get both 'waiting' and 'notified' entries (notified means item is available)
-    const entries = await Waitlist.find({ 
-      user: req.userId, 
+    const entries = await Waitlist.find({
+      user: req.userId,
       status: { $in: ['waiting', 'notified'] }
     })
       .populate({
@@ -57,8 +59,8 @@ r.get('/', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error fetching waitlist:', error);
     console.error('Error stack:', error.stack);
-    res.status(500).json({ 
-      error: 'Internal Server Error', 
+    res.status(500).json({
+      error: 'Internal Server Error',
       message: 'Failed to fetch waitlist',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -66,7 +68,7 @@ r.get('/', authenticate, async (req, res) => {
 });
 
 // POST /api/waitlist
-r.post('/', authenticate, async (req, res) => {
+r.post('/', authenticate, body('itemId').isMongoId(), handleValidationErrors, async (req, res) => {
   try {
     const { itemId } = req.body || {};
     if (!itemId) return res.status(400).json({ error: 'Missing itemId' });
@@ -101,12 +103,12 @@ r.post('/', authenticate, async (req, res) => {
 
     await waitlistEntry.save();
 
-    return res.status(201).json({ 
-      ok: true, 
-      waitlistId: waitlistEntry._id, 
-      userId: req.userId, 
+    return res.status(201).json({
+      ok: true,
+      waitlistId: waitlistEntry._id,
+      userId: req.userId,
       itemId,
-      position 
+      position
     });
   } catch (error) {
     console.error('Error adding to waitlist:', error);
@@ -115,10 +117,10 @@ r.post('/', authenticate, async (req, res) => {
 });
 
 // DELETE /api/waitlist/:id - Remove from waitlist
-r.delete('/:id', authenticate, validateMongoId, async (req, res) => {
+r.delete('/:id', authenticate, validateMongoId('id'), async (req, res) => {
   try {
     const entry = await Waitlist.findOne({ _id: req.params.id, user: req.userId });
-    
+
     if (!entry) {
       return res.status(404).json({ error: 'Not Found', message: 'Waitlist entry not found' });
     }

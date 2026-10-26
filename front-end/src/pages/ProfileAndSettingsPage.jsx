@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronLeft, CreditCard, Bell, Shield, Clock, User } from 'lucide-react';
+import { ChevronLeft, CreditCard, Bell, Clock, User } from 'lucide-react';
 import { useApiData } from '../hooks/useApiData.js';
 import { authUtils } from '../utils/auth.js';
 import { api } from '../services/api.js';
@@ -8,8 +8,7 @@ export default function ProfileAndSettingsPage({ onNavigate }) {
   const [campusCash, setCampusCash] = useState('0.00');
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [inAppNotifications, setInAppNotifications] = useState(true);
-  const [shareData, setShareData] = useState(false);
-  const [reminderTiming, setReminderTiming] = useState('24hours');
+  const [reminderDays, setReminderDays] = useState(5);
   const [saving, setSaving] = useState(false);
   const userId = authUtils.getUserId();
   const userName = authUtils.getUserName?.() || 'Student';
@@ -30,10 +29,7 @@ export default function ProfileAndSettingsPage({ onNavigate }) {
     if (student.notificationPreferences) {
       setEmailNotifications(!!student.notificationPreferences.email);
       setInAppNotifications(student.notificationPreferences.inApp !== false);
-      setShareData(!!student.notificationPreferences.shareData);
-      if (student.notificationPreferences.reminderTiming) {
-        setReminderTiming(student.notificationPreferences.reminderTiming);
-      }
+      setReminderDays(student.notificationPreferences.reminder?.startDaysBefore ?? 5);
     }
   }, [data]);
 
@@ -49,14 +45,13 @@ export default function ProfileAndSettingsPage({ onNavigate }) {
         userId,
         email: emailNotifications,
         inApp: inAppNotifications,
-        shareData,
-        reminderTiming
+        reminder: { startDaysBefore: reminderDays, frequency: 'daily' }
       });
       setSaveSuccess(true);
       setTimeout(() => {
         onNavigate('home');
       }, 1500);
-    } catch (err) {
+    } catch {
       setSaveError('Failed to save settings. Please try again.');
     } finally {
       setSaving(false);
@@ -69,7 +64,7 @@ export default function ProfileAndSettingsPage({ onNavigate }) {
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-3">
-            <button
+            <button aria-label="Back to dashboard"
               onClick={() => onNavigate('home')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
             >
@@ -138,14 +133,14 @@ export default function ProfileAndSettingsPage({ onNavigate }) {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center space-x-3 mb-4">
             <CreditCard className="w-6 h-6 text-[#57068C]" />
-            <h2 className="text-xl font-bold text-gray-900">Campus Cash</h2>
+            <h2 className="text-xl font-bold text-gray-900">Demo Campus Cash</h2>
           </div>
           <div>
             <p className="text-3xl font-bold text-[#57068C]">
               {loading && campusCash === '0.00' ? 'Loading…' : `$${campusCash}`}
             </p>
-            <p className="text-sm text-gray-500 mt-1">Available balance</p>
-            <p className="text-xs text-gray-400 mt-2">Visit the equipment desk to add funds to your account</p>
+            <p className="text-sm text-gray-500 mt-1">Fictional demo balance</p>
+            <p className="text-xs text-gray-400 mt-2">A demo staff account can add fictional credits. No real money is used.</p>
           </div>
         </div>
 
@@ -155,14 +150,15 @@ export default function ProfileAndSettingsPage({ onNavigate }) {
             <Bell className="w-6 h-6 text-[#57068C]" />
             <h2 className="text-xl font-bold text-gray-900">Notifications</h2>
           </div>
-          
+
           <div className="space-y-4">
             <div className="flex items-center justify-between py-2">
               <div>
                 <p className="font-medium text-gray-900">Email</p>
-                <p className="text-sm text-gray-500">Receive updates via email</p>
+                <p className="text-sm text-gray-500">Preference stored only; this demo does not send email.</p>
               </div>
               <button
+                role="switch" aria-label="Email preference (stored only)" aria-checked={emailNotifications}
                 onClick={() => setEmailNotifications(!emailNotifications)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   emailNotifications ? 'bg-[#57068C]' : 'bg-gray-300'
@@ -176,10 +172,11 @@ export default function ProfileAndSettingsPage({ onNavigate }) {
 
             <div className="flex items-center justify-between py-2">
               <div>
-                <p className="font-medium text-gray-900">In-App Notifications</p>
-                <p className="text-sm text-gray-500">Receive alerts within the app</p>
+                <p className="font-medium text-gray-900">Scheduled in-app alerts</p>
+                <p className="text-sm text-gray-500">Due-date reminders; transaction confirmations remain in your records.</p>
               </div>
               <button
+                role="switch" aria-label="Scheduled in-app alerts" aria-checked={inAppNotifications}
                 onClick={() => setInAppNotifications(!inAppNotifications)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   inAppNotifications ? 'bg-[#57068C]' : 'bg-gray-300'
@@ -199,19 +196,20 @@ export default function ProfileAndSettingsPage({ onNavigate }) {
             <Clock className="w-6 h-6 text-[#57068C]" />
             <h2 className="text-xl font-bold text-gray-900">Due Date Reminders</h2>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-3">
             {[
-              { value: '1hour', label: '1 hour before' },
-              { value: '24hours', label: '24 hours before' },
-              { value: '48hours', label: '48 hours before' },
-              { value: '1week', label: '1 week before' }
+              { value: 1, label: '1 day before' },
+              { value: 3, label: '3 days before' },
+              { value: 5, label: '5 days before' },
+              { value: 7, label: '1 week before' }
             ].map((option) => (
               <button
                 key={option.value}
-                onClick={() => setReminderTiming(option.value)}
+                aria-pressed={reminderDays === option.value}
+                onClick={() => setReminderDays(option.value)}
                 className={`py-3 px-4 rounded-lg font-medium text-sm transition-colors ${
-                  reminderTiming === option.value
+                  reminderDays === option.value
                     ? 'bg-[#57068C] text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
@@ -219,31 +217,6 @@ export default function ProfileAndSettingsPage({ onNavigate }) {
                 {option.label}
               </button>
             ))}
-          </div>
-        </div>
-
-        {/* Privacy Settings */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <Shield className="w-6 h-6 text-[#57068C]" />
-            <h2 className="text-xl font-bold text-gray-900">Privacy</h2>
-          </div>
-          
-          <div className="flex items-center justify-between py-2">
-            <div>
-              <p className="font-medium text-gray-900">Share usage data</p>
-              <p className="text-sm text-gray-500">Help improve our service</p>
-            </div>
-            <button
-              onClick={() => setShareData(!shareData)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                shareData ? 'bg-[#57068C]' : 'bg-gray-300'
-              }`}
-            >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                shareData ? 'translate-x-6' : 'translate-x-1'
-              }`} />
-            </button>
           </div>
         </div>
 

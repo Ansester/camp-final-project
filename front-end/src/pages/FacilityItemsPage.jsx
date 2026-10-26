@@ -41,7 +41,7 @@ export default function FacilityItemsPage({ onNavigate, selectedFacility, setSel
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex flex-col sm:flex-row sm:items-center items-start sm:space-x-4 space-y-2 sm:space-y-0">
-            <button
+            <button aria-label="Back to catalogue"
               onClick={() => onNavigate('catalogue')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >

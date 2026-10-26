@@ -2,28 +2,26 @@ const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
 const { generalLimiter } = require('./middleware/rateLimiter');
-const connectDB = require('./config/database');
-
-// Connect to MongoDB
-connectDB();
+const mongoose = require('mongoose');
 
 const app = express();
 
 // Trust proxy - needed when behind nginx reverse proxy
-app.set('trust proxy', 1);
+app.set('trust proxy', process.env.TRUST_PROXY === '1' ? 1 : false);
 
 /* ---------- core middleware ---------- */
-app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
-app.use(morgan('dev'));
+app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:3001' }));
+app.use(express.json({ limit: '100kb' }));
+if (process.env.NODE_ENV !== 'test') app.use(morgan('dev'));
 
 // Apply rate limiting to all API routes
 app.use('/api/', generalLimiter);
 
 /* ---------- health & root ---------- */
 app.get('/api/health', (_req, res) => {
-  res.status(200).json({
-    ok: true,
+  const ready = mongoose.connection.readyState === 1;
+  res.status(ready ? 200 : 503).json({
+    ok: ready,
     service: 'camp-backend',
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
@@ -80,8 +78,8 @@ app.use((req, res) => {
 app.use((err, req, res, _next) => {
   console.error(err);
   res.status(err.status || 500).json({
-    error: 'Internal Server Error',
-    message: err.message || 'Unexpected error',
+    error: (err.status || 500) < 500 ? 'Bad Request' : 'Internal Server Error',
+    message: process.env.NODE_ENV === 'production' ? 'Unexpected error' : err.message,
   });
 });
 

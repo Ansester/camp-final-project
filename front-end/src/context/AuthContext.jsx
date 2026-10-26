@@ -31,7 +31,6 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [initializing, setInitializing] = useState(true);
   const [showSessionExpired, setShowSessionExpired] = useState(false);
-  const activityTimeoutRef = useRef(null);
   const checkIntervalRef = useRef(null);
 
   // derive role from user
@@ -63,21 +62,21 @@ export function AuthProvider({ children }) {
     // Load from localStorage on mount
     const existingToken = authUtils.getToken();
     const existingUser = authUtils.getUser();
-    
+
     // Check if session is already expired
     if (existingToken && existingUser && authUtils.isSessionExpired()) {
       authUtils.clearAuth();
       setInitializing(false);
       return;
     }
-    
+
     if (existingToken) setToken(existingToken);
     if (existingUser) setUser(existingUser);
     if (existingToken && existingUser) {
       authUtils.updateLastActivity();
     }
     setInitializing(false);
-    
+
     // Listen for forced logout events triggered by API layer on 401
     const handleForcedLogout = () => {
       setUser(null);
@@ -93,7 +92,7 @@ export function AuthProvider({ children }) {
 
     // Activity events to track
     const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
-    
+
     // Throttled activity handler (update at most once per second)
     let lastUpdate = 0;
     const handleActivity = () => {

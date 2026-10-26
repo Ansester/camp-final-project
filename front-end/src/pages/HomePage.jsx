@@ -1,10 +1,15 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, Package, Calendar, AlertCircle, ChevronRight, Clock, MapPin, X } from 'lucide-react';
 import { useApiData } from '../hooks/useApiData.js';
 import { authUtils } from '../utils/auth.js';
 
 export default function HomePage({ onNavigate }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+  useEffect(() => {
+    if (isMenuOpen) menuRef.current?.showModal();
+    else menuRef.current?.close();
+  }, [isMenuOpen]);
   const userId = authUtils.getUserId();
   const { data, loading, error, refetch } = useApiData('dashboard', {
     initialData: { stats: [], dueItems: [] },
@@ -48,6 +53,9 @@ export default function HomePage({ onNavigate }) {
           <h1 className="text-2xl sm:text-3xl font-bold text-[#57068C]">C.A.M.P</h1>
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Open navigation menu"
+            aria-expanded={isMenuOpen}
+            aria-controls="student-navigation"
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <Package className="w-6 h-6 text-gray-700" />
@@ -56,20 +64,19 @@ export default function HomePage({ onNavigate }) {
       </div>
 
       {/* Side Menu */}
-      {isMenuOpen && (
-        <div 
-          className="fixed inset-0 z-50 backdrop-blur-sm bg-black/30 transition-all duration-300" 
-          onClick={() => setIsMenuOpen(false)}
+        <dialog
+          ref={menuRef}
+          id="student-navigation"
+          aria-labelledby="student-navigation-title"
+          onClose={() => setIsMenuOpen(false)}
+          className="fixed inset-y-0 left-auto m-0 h-screen max-h-screen w-80 max-w-[90vw] bg-white shadow-2xl border-l border-gray-200 backdrop:bg-black/30"
         >
-          <div
-            className="absolute right-0 top-0 h-full w-80 bg-white/95 backdrop-blur-md shadow-2xl border-l border-gray-200"
-            onClick={(e) => e.stopPropagation()}
-          >
             <div className="p-6">
               <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold text-gray-900">Menu</h2>
+                <h2 id="student-navigation-title" className="text-2xl font-bold text-gray-900">Menu</h2>
                 <button
                   onClick={() => setIsMenuOpen(false)}
+                  aria-label="Close navigation menu"
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <X className="w-6 h-6 text-gray-700" />
@@ -95,9 +102,7 @@ export default function HomePage({ onNavigate }) {
                 ))}
               </div>
             </div>
-          </div>
-        </div>
-      )}
+        </dialog>
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">

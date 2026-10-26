@@ -112,7 +112,7 @@ const Inventory = ({ onNavigate }) => {
       <div className="bg-white shadow-sm sticky top-0 z-20">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4 mb-4">
-            <button
+            <button aria-label="Back to staff dashboard"
               onClick={() => onNavigate('dashboard')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >

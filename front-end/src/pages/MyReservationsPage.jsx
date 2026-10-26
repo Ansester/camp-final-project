@@ -5,7 +5,7 @@ import { api } from '../services/api.js';
 
 export default function MyReservationsPage({ onNavigate }) {
   const [cancelling, setCancelling] = useState(null);
-  
+
   const { data, loading, error, refetch } = useApiData('reservations', {
     initialData: { reservations: [] }
   });
@@ -14,7 +14,7 @@ export default function MyReservationsPage({ onNavigate }) {
 
   const handleCancel = async (id) => {
     if (!confirm('Are you sure you want to cancel this reservation?')) return;
-    
+
     setCancelling(id);
     try {
       await api.cancelReservation(id);
@@ -48,28 +48,28 @@ export default function MyReservationsPage({ onNavigate }) {
   const formatDate = (dateStr) => {
     if (!dateStr) return 'TBD';
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
     });
   };
 
   const formatTime = (dateStr) => {
     if (!dateStr) return 'TBD';
     const date = new Date(dateStr);
-    return date.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit', 
-      hour12: true 
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
     });
   };
 
-  const activeReservations = reservations.filter(r => 
+  const activeReservations = reservations.filter(r =>
     ['pending', 'confirmed', 'ready'].includes(r.status)
   );
-  
-  const pastReservations = reservations.filter(r => 
+
+  const pastReservations = reservations.filter(r =>
     ['picked-up', 'cancelled', 'expired'].includes(r.status)
   );
 
@@ -79,7 +79,7 @@ export default function MyReservationsPage({ onNavigate }) {
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-3">
-            <button
+            <button aria-label="Back to dashboard"
               onClick={() => onNavigate('home')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
             >
@@ -100,7 +100,7 @@ export default function MyReservationsPage({ onNavigate }) {
             </svg>
             <div>
               <p className="text-purple-800 text-sm">Failed to load reservations</p>
-              <button 
+              <button
                 onClick={refetch}
                 className="text-purple-600 text-sm underline hover:text-purple-800 mt-1"
               >
@@ -115,7 +115,7 @@ export default function MyReservationsPage({ onNavigate }) {
               <h2 className="text-xl font-semibold text-gray-800 mb-4">
                 Active Reservations ({activeReservations.length})
               </h2>
-              
+
               {activeReservations.length === 0 ? (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
                   <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
@@ -130,8 +130,8 @@ export default function MyReservationsPage({ onNavigate }) {
               ) : (
                 <div className="space-y-4">
                   {activeReservations.map((reservation) => (
-                    <div 
-                      key={reservation.id || reservation._id} 
+                    <div
+                      key={reservation.id || reservation._id}
                       className="bg-white rounded-xl shadow-sm border border-gray-200 p-5"
                     >
                       <div className="flex justify-between items-start mb-3">
@@ -149,7 +149,7 @@ export default function MyReservationsPage({ onNavigate }) {
                           </span>
                         )}
                       </div>
-                      
+
                       <div className="space-y-2 text-sm text-gray-600 mb-4">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4" />
@@ -166,7 +166,7 @@ export default function MyReservationsPage({ onNavigate }) {
                       </div>
 
                       {['pending', 'confirmed'].includes(reservation.status) && (
-                        <button
+                        <button aria-label="Cancel reservation"
                           onClick={() => handleCancel(reservation.id || reservation._id)}
                           disabled={cancelling === (reservation.id || reservation._id)}
                           className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition disabled:opacity-50"
@@ -189,8 +189,8 @@ export default function MyReservationsPage({ onNavigate }) {
                 </h2>
                 <div className="space-y-4">
                   {pastReservations.map((reservation) => (
-                    <div 
-                      key={reservation.id || reservation._id} 
+                    <div
+                      key={reservation.id || reservation._id}
                       className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 opacity-75"
                     >
                       <div className="flex justify-between items-start">

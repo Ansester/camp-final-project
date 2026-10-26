@@ -148,7 +148,7 @@ export default function StaffLoginPage({ onBack }) {
 
         <div className="mt-8 pt-6 border-t border-gray-200">
           <p className="text-xs text-gray-500 text-center">
-            Powered by your NetID • Secure • Real-time availability
+            Coursework demo · Local accounts · Fictional transactions
           </p>
         </div>
       </div>

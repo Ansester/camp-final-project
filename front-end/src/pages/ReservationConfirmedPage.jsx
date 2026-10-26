@@ -6,11 +6,6 @@ export default function ReservationConfirmedPage({ onNavigate, reservationData, 
   const [suggestedItems, setSuggestedItems] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
-  if (!reservationData) {
-    onNavigate('filter');
-    return null;
-  }
-
   // Fetch suggested items on mount
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -64,13 +59,15 @@ export default function ReservationConfirmedPage({ onNavigate, reservationData, 
     }
   };
 
+  if (!reservationData) return <button onClick={() => onNavigate('filter')}>Choose an item</button>;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-3">
-            <button
+            <button aria-label="Back to dashboard"
               onClick={() => onNavigate('home')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
             >
@@ -114,7 +111,7 @@ export default function ReservationConfirmedPage({ onNavigate, reservationData, 
             </div>
 
             <p className="text-sm text-gray-600 mt-4">
-              Bring Student ID • Check email for QR
+              Saved in this demo. No confirmation email is sent.
             </p>
           </div>
 
@@ -156,10 +153,10 @@ export default function ReservationConfirmedPage({ onNavigate, reservationData, 
 
         {/* Action Buttons */}
         <button
-          onClick={() => onNavigate('borrowals')}
+          onClick={() => onNavigate('reservations')}
           className="w-full py-4 bg-gray-300 text-gray-700 font-bold text-lg rounded-xl hover:bg-gray-400 transition-colors shadow-sm"
         >
-          My Borrowals
+          My Reservations
         </button>
 
         <button

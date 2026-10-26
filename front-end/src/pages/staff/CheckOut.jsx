@@ -31,8 +31,8 @@ const CheckOut = ({ onNavigate, selectedItem: prefillData }) => {
     refetch: refetchInventory
   } = useApiData('staffInventory', { initialData: { items: [] } });
 
-  const students = studentsPayload?.students ?? [];
-  const inventoryItems = inventoryPayload?.items ?? [];
+  const students = useMemo(() => studentsPayload?.students ?? [], [studentsPayload?.students]);
+  const inventoryItems = useMemo(() => inventoryPayload?.items ?? [], [inventoryPayload?.items]);
 
   // Handle prefill data
   useEffect(() => {
@@ -45,7 +45,7 @@ const CheckOut = ({ onNavigate, selectedItem: prefillData }) => {
           if (match) handleSelectStudent(match);
         }
       }
-      
+
       // Prefill Item
       if (!selectedItem && inventoryItems.length > 0) {
         const targetItemId = String(prefillData.itemId || prefillData.id || '');
@@ -55,13 +55,13 @@ const CheckOut = ({ onNavigate, selectedItem: prefillData }) => {
         }
       }
     }
-  }, [prefillData, students, inventoryItems]);
+  }, [prefillData, students, inventoryItems, selectedStudent, selectedItem]);
 
   // Live filter students as user types
   const filteredStudents = useMemo(() => {
     if (!studentSearch.trim()) return students.slice(0, 20);
     const query = studentSearch.toLowerCase();
-    return students.filter(s => 
+    return students.filter(s =>
       s.name.toLowerCase().includes(query) ||
       s.netId.toLowerCase().includes(query) ||
       s.email?.toLowerCase().includes(query)
@@ -73,7 +73,7 @@ const CheckOut = ({ onNavigate, selectedItem: prefillData }) => {
     const availableItems = inventoryItems.filter(i => i.availableQuantity > 0);
     if (!itemSearch.trim()) return availableItems.slice(0, 20);
     const query = itemSearch.toLowerCase();
-    return availableItems.filter(i => 
+    return availableItems.filter(i =>
       i.name.toLowerCase().includes(query) ||
       i.assetId?.toLowerCase().includes(query) ||
       i.category?.toLowerCase().includes(query) ||
@@ -92,7 +92,7 @@ const CheckOut = ({ onNavigate, selectedItem: prefillData }) => {
     });
     setStudentSearch('');
     setShowStudentDropdown(false);
-    
+
     // Fetch student's borrowals
     setBorrowalsLoading(true);
     try {
@@ -128,7 +128,7 @@ const CheckOut = ({ onNavigate, selectedItem: prefillData }) => {
     if (checkoutLoading || !selectedStudent || !selectedItem) return;
     setCheckoutError(null);
     setCheckoutLoading(true);
-    
+
     const payload = {
       userId: selectedStudent.id,
       itemId: selectedItem.id
@@ -174,7 +174,7 @@ const CheckOut = ({ onNavigate, selectedItem: prefillData }) => {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <button
+          <button aria-label="Back to staff dashboard"
             onClick={() => onNavigate('dashboard')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
@@ -253,7 +253,7 @@ const CheckOut = ({ onNavigate, selectedItem: prefillData }) => {
                   <div className="text-sm text-gray-600">{selectedStudent.netId} • {selectedStudent.email}</div>
                 </div>
               </div>
-              <button
+              <button aria-label="Clear selected student"
                 onClick={() => {
                   setSelectedStudent(null);
                   setStudentBorrowals({ active: [], history: [] });
@@ -264,7 +264,7 @@ const CheckOut = ({ onNavigate, selectedItem: prefillData }) => {
               </button>
             </div>
           )}
-          
+
           {selectedStudent?.fines > 0 && (
             <div className="mt-3 p-3 bg-violet-50 border border-violet-200 rounded-lg flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-violet-600" />
@@ -386,7 +386,7 @@ const CheckOut = ({ onNavigate, selectedItem: prefillData }) => {
                   </div>
                 </div>
               </div>
-              <button
+              <button aria-label="Clear selected item"
                 onClick={() => setSelectedItem(null)}
                 className="p-2 hover:bg-violet-100 rounded-lg transition-colors"
               >
@@ -462,8 +462,8 @@ const CheckOut = ({ onNavigate, selectedItem: prefillData }) => {
 
         {/* Click outside to close dropdowns */}
         {(showStudentDropdown || showItemDropdown) && (
-          <div 
-            className="fixed inset-0 z-0" 
+          <div
+            className="fixed inset-0 z-0"
             onClick={() => {
               setShowStudentDropdown(false);
               setShowItemDropdown(false);

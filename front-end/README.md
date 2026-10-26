@@ -1,47 +1,16 @@
-### Sprint 1 Roles:
-- Scrum Master: Talal Naveed
-- Product Owner: Ashmit Mukherjee
-- Dev 1: Shaf Khalid
-- Dev 2: Akshith Karthik
-- Dev 3: Saad Iftikhar
+# CAMP client
 
-### Front-end Structure:
+React client built with **Webpack**, Babel and Tailwind CSS. Follow the [root README](../README.md) to start MongoDB and the API first.
 
-<img width="985" height="870" alt="image" src="https://github.com/user-attachments/assets/518acdd1-06e0-4d56-b8a5-dba9eefad058" />
+```sh
+npm ci
+npm run dev
+```
 
-This project was bootstrapped with [Vite](https://vitejs.dev/), a fast build tool for modern web applications.  
-It uses **React**, **Tailwind CSS**, and **JavaScript (ES6)** for the front-end.
+Open http://localhost:3001. Webpack proxies `/api` to http://localhost:3000. `npm run build` creates `dist/`; `npm run lint` gates errors and warnings; `npm run test:api` checks request authentication and logout behavior with a stubbed `fetch`. There is no Vite server, `npm run preview`, or mock-data fallback.
 
-## Available Scripts
+`REACT_APP_API_BASE` is an optional **build-time origin**, such as `http://localhost:3000`; omit it for same-origin `/api` requests. Export it in your shell before `npm run dev` or `npm run build`. Webpack does not load `.env` files. Do not append `/api` to the origin because service methods already include that prefix. A cross-origin API must allow the client origin through backend `CORS_ORIGIN`.
 
-In the project directory, you can run:
+The UI is coursework software. Demo fine payments use fictional balances, never a card processor or real Campus Cash. Saved email/SMS preferences do not send messages. Backend access checks remain authoritative; editing a role in browser local storage cannot grant staff API access.
 
-### `npm run dev`
-
-Runs the app in development mode.  
-Open [http://localhost:5173](http://localhost:5173) to view it in your browser.
-
-The page will reload automatically when you make changes to the code.  
-You may also see any lint errors in the console.
-
-### `npm run build`
-
-Builds the app for production to the `dist` folder.  
-It optimizes and bundles your React components for best performance.  
-
-Your app is now ready to be deployed!
-
-### `npm run preview`
-
-Previews the production build locally.  
-This is useful to test your app before deploying it.
-
-### `npm install`
-
-Installs all required dependencies listed in `package.json`.  
-You only need to run this once before running or building the app.
-
----
-
-
-
+Sprint 1 roles: Scrum Master Talal Naveed; Product Owner Ashmit Mukherjee; developers Shaf Khalid, Akshith Karthik and Saad Iftikhar. Later maintenance does not reattribute the team's work.

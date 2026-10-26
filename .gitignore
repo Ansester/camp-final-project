@@ -39,8 +39,7 @@ Thumbs.db
 # Typical Node.js artifacts #
 #############################
 
-# Lock file so we don't bloat the git log stats
-package-lock.json
+# Lockfiles are committed for reproducible npm ci installs.
 
 # Logs
 logs
@@ -127,3 +126,6 @@ typings/
 ## Jekyll artifacts
 **/.jekyll-cache
 **/_site/
+# Bundles and local MongoDB binary cache
+**/dist/
+.mongodb-binaries/

@@ -1,16 +1,10 @@
-import { useEffect } from 'react';
 import { ArrowRight, Package, LogOut, LogIn, Calendar, AlertTriangle, DollarSign } from 'lucide-react';
 import { useApiData } from '../../hooks/useApiData.js';
 
 const StaffDashboard = ({ onNavigate }) => {
-  const { data, loading, error, refetch } = useApiData('staffDashboard', {
+  const { data, error, refetch } = useApiData('staffDashboard', {
     initialData: { inventoryStats: null }
   });
-
-  // Refetch stats whenever dashboard is shown (e.g., after checkout/checkin)
-  useEffect(() => {
-    refetch();
-  }, []);
 
   const inventoryStats = data?.inventoryStats ?? {
     available: 0,

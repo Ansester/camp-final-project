@@ -43,6 +43,8 @@ const fineSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  paymentMethod: { type: String, enum: ['demo-campus-cash'], default: null },
+  receiptNumber: { type: String, default: null },
   waivedDate: {
     type: Date,
     default: null,

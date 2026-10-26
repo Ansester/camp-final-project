@@ -17,7 +17,7 @@ export default function NotificationsPage({ onNavigate }) {
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-3">
-            <button
+            <button aria-label="Back to dashboard"
               onClick={() => onNavigate('home')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
             >
@@ -32,7 +32,7 @@ export default function NotificationsPage({ onNavigate }) {
         {/* Notification Channels */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Notification Channels</h2>
-          
+
           <div className="space-y-4">
             <div className="flex items-center justify-between py-3 border-b border-gray-200">
               <div>
@@ -97,7 +97,7 @@ export default function NotificationsPage({ onNavigate }) {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Reminder Timing</h2>
           <p className="text-sm text-gray-600 mb-4">When should we remind you about due items?</p>
-          
+
           <div className="space-y-3">
             <label className="flex items-center space-x-3 cursor-pointer">
               <input

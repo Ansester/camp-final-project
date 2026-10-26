@@ -15,16 +15,16 @@ r.use(authenticate, authorize('staff', 'admin'));
 r.get('/students/search', async (req, res) => {
   try {
     const { q } = req.query;
-    
+
     if (!q || q.trim().length < 2) {
-      return res.status(400).json({ 
-        error: 'Bad Request', 
-        message: 'Search query must be at least 2 characters' 
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'Search query must be at least 2 characters'
       });
     }
 
     const searchRegex = new RegExp(q.trim(), 'i');
-    
+
     // Search users by name, email, or netId
     const users = await User.find({
       role: 'student',
@@ -78,15 +78,15 @@ r.get('/students/search', async (req, res) => {
       };
     }));
 
-    return res.status(200).json({ 
+    return res.status(200).json({
       students: results,
       count: results.length
     });
   } catch (error) {
     console.error('Error searching students:', error);
-    res.status(500).json({ 
-      error: 'Internal Server Error', 
-      message: 'Failed to search students' 
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to search students'
     });
   }
 });
@@ -167,9 +167,9 @@ r.get('/students/:userId/borrowals', validateMongoId('userId'), async (req, res)
     });
   } catch (error) {
     console.error('Error fetching student borrowals:', error);
-    res.status(500).json({ 
-      error: 'Internal Server Error', 
-      message: 'Failed to fetch student borrowals' 
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch student borrowals'
     });
   }
 });
@@ -178,15 +178,15 @@ r.get('/students/:userId/borrowals', validateMongoId('userId'), async (req, res)
 r.get('/inventory', validatePagination, async (req, res) => {
   try {
     const { status, category, facility, page = 1, limit = 50, search } = req.query;
-    
+
     const query = { isActive: true };
     if (status) query.status = status;
     if (category) query.category = category;
     if (facility) {
       // Find facility by name
       const Facility = require('../models/Facility');
-      const facilityDoc = await Facility.findOne({ 
-        name: new RegExp(`^${facility}$`, 'i') 
+      const facilityDoc = await Facility.findOne({
+        name: new RegExp(`^${facility}$`, 'i')
       });
       if (facilityDoc) query.facility = facilityDoc._id;
     }
@@ -203,24 +203,25 @@ r.get('/inventory', validatePagination, async (req, res) => {
 
     // Compute availableQuantity for each item
     const results = await Promise.all(items.map(async (item) => {
-      const totalQty = item.quantity || 1;
-      
+      const totalQty = item.quantity ?? 1;
+
       // Count active borrowals for this item
       const activeBorrowals = await Borrowal.countDocuments({
         item: item._id,
         status: { $in: ['active', 'overdue'] }
       });
-      
-      // For staff view: Don't subtract reservations - staff can check out reserved items
-      // They just need to know what's physically available (not checked out)
+
+      // Show physical stock separately from reservation commitments.
+      // Checkout also checks overlapping reservations for the selected borrower.
       const availableQty = Math.max(0, totalQty - activeBorrowals);
-      
+
       // Also provide reservation count for reference
       const activeReservations = await Reservation.countDocuments({
         item: item._id,
-        status: { $in: ['active', 'pending', 'confirmed'] }
+        status: { $in: ['pending', 'confirmed'] },
+        expiryDate: { $gt: new Date() }
       });
-      
+
       return {
         id: item._id,
         name: item.name,
@@ -239,7 +240,7 @@ r.get('/inventory', validatePagination, async (req, res) => {
 
     const total = await Item.countDocuments(query);
 
-    return res.status(200).json({ 
+    return res.status(200).json({
       items: results,
       pagination: {
         page: parseInt(page),
@@ -264,7 +265,7 @@ r.post('/items', validateItemCreation, async (req, res) => {
     const Facility = require('../models/Facility');
     const mongoose = require('mongoose');
     let facilityDoc;
-    
+
     if (mongoose.Types.ObjectId.isValid(facility)) {
       // Try to find by ID first
       facilityDoc = await Facility.findById(facility);
@@ -285,18 +286,18 @@ r.post('/items', validateItemCreation, async (req, res) => {
       description,
       assetId,
       condition: condition || 'good',
-      quantity: quantity || 1
+      quantity: quantity ?? 1
     });
 
     await item.save();
 
-    return res.status(201).json({ 
-      ok: true, 
-      id: item._id, 
-      name: item.name, 
-      category: item.category, 
+    return res.status(201).json({
+      ok: true,
+      id: item._id,
+      name: item.name,
+      category: item.category,
       facility: facilityDoc?.name,
-      status: item.status 
+      status: item.status
     });
   } catch (error) {
     console.error('Error creating item:', error);
@@ -304,154 +305,27 @@ r.post('/items', validateItemCreation, async (req, res) => {
   }
 });
 
-// POST /api/staff/checkout
+const inventory = require('../utils/inventory');
 r.post('/checkout', validateBorrowalCreation, async (req, res) => {
   try {
-    const { userId, itemId, dueDate } = req.body || {};
-    if (!userId || !itemId) return res.status(400).json({ error: 'Missing userId or itemId' });
-
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    const item = await Item.findById(itemId);
-    if (!item) return res.status(404).json({ error: 'Item not found' });
-    
-    // For staff checkout: only count actual borrowals, not reservations
-    // Staff can check out items even if they're reserved
-    const totalQty = item.quantity || 1;
-    const activeBorrowals = await Borrowal.countDocuments({
-      item: itemId,
-      status: { $in: ['active', 'overdue'] }
-    });
-    
-    // Physical availability = total - currently checked out
-    const physicallyAvailable = Math.max(0, totalQty - activeBorrowals);
-
-    if (physicallyAvailable <= 0) {
-      return res.status(400).json({ error: `No available quantity for this item - all units are checked out` });
-    }
-    
-    // Check if user has a reservation for this item and fulfill it
-    const existingReservation = await Reservation.findOne({
-      item: itemId,
-      user: userId,
-      status: { $in: ['confirmed', 'pending'] }
-    }).sort({ pickupDate: 1 });
-    
-    if (existingReservation) {
-      existingReservation.status = 'picked-up';
-      existingReservation.fulfilledAt = new Date();
-      await existingReservation.save();
-    }
-
-    const borrowal = new Borrowal({
-      user: userId,
-      item: itemId,
-      checkoutDate: new Date(),
-      dueDate: dueDate ? new Date(dueDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      checkedOutBy: req.userId
-    });
-
-    await borrowal.save();
-
-    // Update item quantity and status
-    item.quantityAvailable = Math.max(0, (item.quantityAvailable ?? item.quantity ?? 1) - 1);
-    if (item.quantityAvailable === 0) {
-      item.status = 'checked-out';
-    }
-    await item.save();
-
-    const populated = await borrowal.populate([
-      {
-        path: 'item',
-        select: 'name assetId facility quantity quantityAvailable',
-        populate: { path: 'facility', select: 'name location' }
-      },
-      {
-        path: 'user',
-        select: 'firstName lastName netId email'
-      }
-    ]);
-    return res.status(201).json({ 
-      ok: true, 
-      borrowal: populated,
-      student: {
-        id: populated.user._id,
-        name: `${populated.user.firstName} ${populated.user.lastName}`,
-        netId: populated.user.netId,
-        email: populated.user.email
-      }
-    });
-  } catch (error) {
-    console.error('Error checking out item:', error);
-    res.status(500).json({ error: 'Internal Server Error', message: 'Failed to check out item' });
-  }
+    const borrowal = await inventory.checkout({ ...req.body, actorId: req.userId });
+    await borrowal.populate([{ path: 'item', select: 'name assetId facility quantity quantityAvailable', populate: { path: 'facility', select: 'name location' } }, { path: 'user', select: 'firstName lastName netId email' }]);
+    res.status(201).json({ ok: true, borrowal, student: { id: borrowal.user._id, name: borrowal.user.fullName, netId: borrowal.user.netId, email: borrowal.user.email } });
+  } catch (error) { res.status(error.status || 500).json({ error: error.status ? error.message : 'Checkout failed' }); }
 });
-
-// POST /api/staff/checkin
 r.post('/checkin', async (req, res) => {
   try {
-    const { itemId, userId, borrowalId, condition, notes } = req.body || {};
-    if (!itemId) return res.status(400).json({ error: 'Missing itemId' });
-    if (!userId && !borrowalId) return res.status(400).json({ error: 'Missing userId or borrowalId' });
-
-    const item = await Item.findById(itemId);
-    if (!item) return res.status(404).json({ error: 'Item not found' });
-
-    // Find active borrowal for this item and user
-    const borrowal = borrowalId 
-      ? await Borrowal.findById(borrowalId)
-      : await Borrowal.findOne({ 
-          item: itemId, 
-          user: userId,
-          status: { $in: ['active', 'overdue'] } 
-        });
-
-    if (!borrowal) {
-      return res.status(404).json({ 
-        error: 'Not Found', 
-        message: 'No active borrowal found for this item and student' 
-      });
-    }
-
-    borrowal.status = 'returned';
-    borrowal.returnDate = new Date();
-    borrowal.checkedInBy = req.userId;
-    borrowal.conditionOnReturn = condition || 'good';
-    if (notes) borrowal.notes = notes;
-    await borrowal.save();
-
-    // Restore quantity
-    const totalQty = item.quantity || 1;
-    item.quantityAvailable = Math.min(totalQty, (item.quantityAvailable ?? 0) + 1);
-    
-    // Update status based on condition and quantity
-    if (condition === 'damaged' || condition === 'needs-repair') {
-      item.status = 'maintenance';
-      item.condition = condition;
-    } else if (item.quantityAvailable > 0) {
-      item.status = 'available';
-    }
-    await item.save();
-
-    return res.status(201).json({ 
-      ok: true, 
-      itemId: item._id, 
-      status: item.status,
-      quantity: item.quantity,
-      quantityAvailable: item.quantityAvailable
-    });
-  } catch (error) {
-    console.error('Error checking in item:', error);
-    res.status(500).json({ error: 'Internal Server Error', message: 'Failed to check in item' });
-  }
+    if (!req.body.itemId || (!req.body.userId && !req.body.borrowalId)) return res.status(400).json({ error: 'itemId and userId or borrowalId are required' });
+    const { item } = await inventory.checkin({ ...req.body, actorId: req.userId });
+    res.status(201).json({ ok: true, itemId: item._id, status: item.status, quantity: item.quantity, quantityAvailable: item.quantityAvailable });
+  } catch (error) { res.status(error.status || 500).json({ error: error.status ? error.message : 'Return failed' }); }
 });
 
 // GET /api/staff/reservations
 r.get('/reservations', validatePagination, async (req, res) => {
   try {
     const { status, facility, page = 1, limit = 50 } = req.query;
-    
+
     const query = {};
     // By default, only show active reservations (pending/confirmed)
     // Exclude picked-up, fulfilled, cancelled, expired
@@ -503,7 +377,7 @@ r.get('/reservations', validatePagination, async (req, res) => {
 
     const total = await Reservation.countDocuments(query);
 
-    return res.status(200).json({ 
+    return res.status(200).json({
       reservations: results,
       pagination: {
         page: parseInt(page),
@@ -522,7 +396,7 @@ r.get('/reservations', validatePagination, async (req, res) => {
 r.get('/borrowals/active', validatePagination, async (req, res) => {
   try {
     const { page = 1, limit = 50, itemId } = req.query;
-    
+
     const query = { status: { $in: ['active', 'overdue'] } };
     if (itemId) query.item = itemId;
 
@@ -556,7 +430,7 @@ r.get('/borrowals/active', validatePagination, async (req, res) => {
 
     const total = await Borrowal.countDocuments(query);
 
-    return res.status(200).json({ 
+    return res.status(200).json({
       borrowals: results,
       pagination: {
         page: parseInt(page),
@@ -575,7 +449,7 @@ r.get('/borrowals/active', validatePagination, async (req, res) => {
 r.get('/overdue', validatePagination, async (req, res) => {
   try {
     const { page = 1, limit = 50 } = req.query;
-    
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const borrowals = await Borrowal.find({ status: 'overdue' })
       .populate('user', 'firstName lastName')
@@ -597,7 +471,7 @@ r.get('/overdue', validatePagination, async (req, res) => {
 
     const total = await Borrowal.countDocuments({ status: 'overdue' });
 
-    return res.status(200).json({ 
+    return res.status(200).json({
       items,
       pagination: {
         page: parseInt(page),
@@ -617,15 +491,15 @@ r.get('/alerts', async (req, res) => {
   try {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
-    
+
     const [available, out, reserved, checkoutsToday, returnsToday, overdue] = await Promise.all([
       Item.countDocuments({ status: 'available', isActive: true }),
       Item.countDocuments({ status: 'checked-out', isActive: true }),
       Item.countDocuments({ status: 'reserved', isActive: true }),
-      Borrowal.countDocuments({ 
+      Borrowal.countDocuments({
         checkoutDate: { $gte: todayStart }
       }),
-      Borrowal.countDocuments({ 
+      Borrowal.countDocuments({
         returnDate: { $gte: todayStart },
         status: 'returned'
       }),
@@ -652,7 +526,7 @@ r.get('/alerts', async (req, res) => {
 r.get('/fines', validatePagination, async (req, res) => {
   try {
     const { status, page = 1, limit = 50 } = req.query;
-    
+
     const query = {};
     if (status) query.status = status;
 
@@ -676,7 +550,7 @@ r.get('/fines', validatePagination, async (req, res) => {
       reason: f.reason,
       status: f.status,
       createdAt: f.createdAt,
-      paidAt: f.paidAt
+      paidAt: f.paidDate
     }));
 
     const total = await Fine.countDocuments(query);

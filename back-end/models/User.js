@@ -55,6 +55,15 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  notificationPreferences: {
+    email: { type: Boolean, default: true },
+    sms: { type: Boolean, default: false },
+    inApp: { type: Boolean, default: true },
+    reminder: {
+      startDaysBefore: { type: Number, min: 0, max: 30, default: 5 },
+      frequency: { type: String, enum: ['daily', 'weekly', 'never'], default: 'daily' },
+    },
+  },
 }, {
   timestamps: true,
 });

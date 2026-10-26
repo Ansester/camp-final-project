@@ -1,111 +1,35 @@
-name: Continuous Integration
-
+name: CI
 on:
-  pull_request:
-    branches: [ master ]
   push:
-    branches: [ master ]
-
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
 jobs:
-  backend-tests:
+  check:
     runs-on: ubuntu-latest
-    
-    services:
-      mongodb:
-        image: mongo:7.0
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.runCommand({ping: 1})'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
-    
+        node: [22, 24]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Set up Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
         with:
-          node-version: ${{ matrix.node-version }}
-      
-      - name: Install backend dependencies
-        working-directory: ./back-end
-        run: npm install
-      
-      - name: Seed test database
-        working-directory: ./back-end
-        env:
-          MONGODB_URI: mongodb://localhost:27017/camp_test
-          NODE_ENV: test
-        run: node scripts/seed.js --drop
-      
-      - name: Run backend tests
-        working-directory: ./back-end
-        env:
-          MONGODB_URI: mongodb://localhost:27017/camp_test
-          JWT_SECRET: test-secret-key-for-ci
-          NODE_ENV: test
-        run: npm test || echo "Tests completed with some failures" && exit 0
-      
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
-        if: matrix.node-version == '20.x'
-        with:
-          working-directory: ./back-end
-          flags: backend
-
-  frontend-build:
-    runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x]
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Set up Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-      
-      - name: Install frontend dependencies
-        working-directory: ./front-end
-        run: npm install
-      
-      - name: Lint frontend code
-        working-directory: ./front-end
-        run: npm run lint
-        continue-on-error: true
-      
-      - name: Build frontend
-        working-directory: ./front-end
-        env:
-          CI: false
-        run: npm run build
-      
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        if: matrix.node-version == '20.x'
-        with:
-          name: frontend-build
-          path: front-end/dist/
-          retention-days: 7
-
-  integration-check:
-    runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-build]
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: All checks passed
-        run: echo "All CI checks passed successfully"
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: |
+            back-end/package-lock.json
+            front-end/package-lock.json
+      - run: npm ci
+        working-directory: back-end
+      - run: npm test
+        working-directory: back-end
+      - run: npm ci
+        working-directory: front-end
+      - run: npm run lint
+        working-directory: front-end
+      - run: npm run test:api
+        working-directory: front-end
+      - run: npm run build
+        working-directory: front-end

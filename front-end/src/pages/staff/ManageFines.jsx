@@ -10,7 +10,7 @@ const ManageFines = ({ onNavigate, prefillData }) => {
   const [fineAmount, setFineAmount] = useState('');
   const [fineNotes, setFineNotes] = useState('');
   const [fundsAmount, setFundsAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const paymentMethod = 'demo-credit';
   const [lookupError, setLookupError] = useState(null);
   const [activeTab, setActiveTab] = useState('fines'); // 'fines' or 'funds'
   const [actionLoading, setActionLoading] = useState(false);
@@ -20,13 +20,13 @@ const ManageFines = ({ onNavigate, prefillData }) => {
     initialData: { students: [] }
   });
 
-  const students = data?.students ?? [];
+  const students = useMemo(() => data?.students ?? [], [data?.students]);
 
   // Handle prefill data from overdue page
   useEffect(() => {
     // Skip if no prefill data or if we already have a selected student from prefill
     if (!prefillData) return;
-    
+
     console.log('ManageFines prefillData:', prefillData);
 
     const loadPrefillUser = async () => {
@@ -36,9 +36,9 @@ const ManageFines = ({ onNavigate, prefillData }) => {
           console.log('Fetching user profile for:', prefillData.userId);
           const profileRes = await api.profile(prefillData.userId);
           console.log('Profile response:', profileRes);
-          
+
           const studentProfile = profileRes.student;
-          
+
           // Also try to get fines
           let studentFines = [];
           try {
@@ -70,11 +70,11 @@ const ManageFines = ({ onNavigate, prefillData }) => {
 
         } catch (err) {
           console.error("Failed to load prefill user", err);
-          
+
           // Fallback: try to find in students list
           if (students.length > 0) {
-            const match = students.find(s => 
-              s.id === prefillData.userId || 
+            const match = students.find(s =>
+              s.id === prefillData.userId ||
               s.name?.toLowerCase().includes(prefillData.name?.toLowerCase())
             );
             if (match) {
@@ -89,17 +89,7 @@ const ManageFines = ({ onNavigate, prefillData }) => {
     };
 
     loadPrefillUser();
-  }, [prefillData]); // Only run when prefillData changes, not when students changes
-
-  const studentPaymentOptions = useMemo(() => {
-    if (!selectedStudent?.activeFines) {
-      return [];
-    }
-    return selectedStudent.activeFines.map((fine) => ({
-      id: fine.id,
-      label: `${fine.reason} ($${fine.amount.toFixed(2)})`
-    }));
-  }, [selectedStudent]);
+  }, [prefillData, students]);
 
   const handleStudentSearch = () => {
     if (!studentSearch.trim()) {
@@ -156,7 +146,7 @@ const ManageFines = ({ onNavigate, prefillData }) => {
         amount: parseFloat(fundsAmount),
         method: paymentMethod
       });
-      setActionMessage({ type: 'success', text: `Added $${fundsAmount} to ${selectedStudent.name}'s Campus Cash balance.` });
+      setActionMessage({ type: 'success', text: `Added $${fundsAmount} to ${selectedStudent.name}'s Demo Campus Cash balance.` });
       setFundsAmount('');
       refetch(); // Refresh student data to show updated balance
     } catch (e) {
@@ -171,7 +161,7 @@ const ManageFines = ({ onNavigate, prefillData }) => {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <button
+          <button aria-label="Back to staff dashboard"
             onClick={() => onNavigate('dashboard')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
@@ -221,8 +211,8 @@ const ManageFines = ({ onNavigate, prefillData }) => {
         {/* Action Message */}
         {actionMessage && (
           <div className={`p-4 rounded-lg mb-6 ${
-            actionMessage.type === 'success' 
-              ? 'bg-green-50 border border-green-200 text-green-800' 
+            actionMessage.type === 'success'
+              ? 'bg-green-50 border border-green-200 text-green-800'
               : 'bg-red-50 border border-red-200 text-red-800'
           }`}>
             {actionMessage.text}
@@ -264,7 +254,7 @@ const ManageFines = ({ onNavigate, prefillData }) => {
           {loading && students.length === 0 && (
             <p className="mt-3 text-sm text-gray-600">Loading student directory…</p>
           )}
-          
+
           {/* Selected Student Info */}
           {selectedStudent && (
             <div className="mt-4 p-4 bg-violet-50 rounded-lg border border-violet-200">
@@ -274,7 +264,7 @@ const ManageFines = ({ onNavigate, prefillData }) => {
                   <p className="text-sm text-gray-600">{selectedStudent.netId} • {selectedStudent.email}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-500">Campus Cash Balance</p>
+                  <p className="text-sm text-gray-500">Demo Campus Cash Balance</p>
                   <p className="text-lg font-bold text-[#57068C]">
                     ${(selectedStudent.campusCashBalance || 0).toFixed(2)}
                   </p>
@@ -338,7 +328,7 @@ const ManageFines = ({ onNavigate, prefillData }) => {
             {/* Apply Fine Section */}
             <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Apply fine</h2>
-              
+
               {/* Reason */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -389,42 +379,7 @@ const ManageFines = ({ onNavigate, prefillData }) => {
                 />
               </div>
 
-              {/* Record Payment Section */}
-              <div className="border-t border-gray-200 pt-4 mt-4">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Record payment</h3>
-                
-                {/* Select fine */}
-                <div className="mb-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Select fine to pay</label>
-                  <select 
-                    disabled={!selectedStudent || studentPaymentOptions.length === 0}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm disabled:bg-gray-100 disabled:text-gray-500"
-                  >
-                    <option value="">
-                      {studentPaymentOptions.length === 0 ? 'No unpaid fines' : 'Choose...'}
-                    </option>
-                    {studentPaymentOptions.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Method */}
-                <div>
-                  <label className="block text-sm text-gray-600 mb-2">Method</label>
-                  <select
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
-                  >
-                    <option value="cash">Cash</option>
-                    <option value="card">Card</option>
-                    <option value="campusCash">Campus Cash</option>
-                  </select>
-                </div>
-              </div>
+              <p className="text-sm text-gray-600">Students settle their own fines using a fictional demo balance. This application does not accept cash or card payments.</p>
             </div>
 
             {/* Action Button for Fines */}
@@ -446,11 +401,11 @@ const ManageFines = ({ onNavigate, prefillData }) => {
         {activeTab === 'funds' && (
           <>
             <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Campus Cash</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Demo Campus Cash</h2>
               <p className="text-sm text-gray-600 mb-4">
-                Add funds to a student's Campus Cash balance for equipment deposits and fines.
+                Add funds to a student's Demo Campus Cash balance for equipment deposits and fines.
               </p>
-              
+
               {/* Amount */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -483,21 +438,7 @@ const ManageFines = ({ onNavigate, prefillData }) => {
                 ))}
               </div>
 
-              {/* Payment Method */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Payment Method
-                </label>
-                <select
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500"
-                >
-                  <option value="cash">Cash</option>
-                  <option value="card">Card</option>
-                  <option value="check">Check</option>
-                </select>
-              </div>
+              <p className="text-sm text-gray-600">Demo credits only. No cash, card or check is collected.</p>
             </div>
 
             {/* Action Button for Funds */}

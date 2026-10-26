@@ -8,29 +8,11 @@ export default function ItemDetailPage({ onNavigate, selectedItem, setWaitlistDa
   const [currentWaitlistEntry, setCurrentWaitlistEntry] = useState(null);
   const [loadingWaitlist, setLoadingWaitlist] = useState(true);
 
-  if (!selectedItem) {
-    onNavigate('filter');
-    return null;
-  }
-
-  const facilityName = selectedItem.facility && typeof selectedItem.facility === 'object'
-    ? selectedItem.facility.name
-    : selectedItem.facility;
-
-  // Normalize availability status regardless of backend field naming
-  const rawStatus = selectedItem.status || selectedItem.availability || '';
-  const normalizedStatus = typeof rawStatus === 'string' ? rawStatus.toLowerCase() : '';
-  
-  // Check quantity-based availability
-  const totalQuantity = selectedItem.quantity ?? 1;
-  const availableQuantity = selectedItem.availableQuantity ?? (normalizedStatus === 'available' ? 1 : 0);
-  const isAvailable = availableQuantity > 0;
-
   // Check if user is already on waitlist for this item
   useEffect(() => {
     const checkWaitlist = async () => {
       if (!selectedItem) return;
-      
+
       setLoadingWaitlist(true);
       try {
         const itemId = selectedItem._id || selectedItem.id;
@@ -41,13 +23,13 @@ export default function ItemDetailPage({ onNavigate, selectedItem, setWaitlistDa
 
         const response = await api.getWaitlist();
         const waitlistEntries = response.waitlist || [];
-        
+
         // Find if current item is in waitlist (normalize both to strings for comparison)
         const itemIdStr = String(itemId);
         const entry = waitlistEntries.find(
           e => String(e.itemId) === itemIdStr
         );
-        
+
         // If entry exists but status is 'notified', it means item is available
         // Don't show waitlist position in this case - user should reserve instead
         if (entry && entry.status === 'notified') {
@@ -55,7 +37,7 @@ export default function ItemDetailPage({ onNavigate, selectedItem, setWaitlistDa
         } else {
           setCurrentWaitlistEntry(entry || null);
         }
-      } catch (err) {
+      } catch {
         // If user is not logged in or other error, just don't show waitlist info
         setCurrentWaitlistEntry(null);
       } finally {
@@ -65,6 +47,21 @@ export default function ItemDetailPage({ onNavigate, selectedItem, setWaitlistDa
 
     checkWaitlist();
   }, [selectedItem]);
+
+  if (!selectedItem) return <button onClick={() => onNavigate('filter')}>Choose an item</button>;
+
+  const facilityName = selectedItem.facility && typeof selectedItem.facility === 'object'
+    ? selectedItem.facility.name
+    : selectedItem.facility;
+
+  // Normalize availability status regardless of backend field naming
+  const rawStatus = selectedItem.status || selectedItem.availability || '';
+  const normalizedStatus = typeof rawStatus === 'string' ? rawStatus.toLowerCase() : '';
+
+  // Check quantity-based availability
+  const totalQuantity = selectedItem.quantity ?? 1;
+  const availableQuantity = selectedItem.availableQuantity ?? (normalizedStatus === 'available' ? 1 : 0);
+  const isAvailable = availableQuantity > 0;
 
   const handleReserve = () => {
     onNavigate('reserveDateTime');
@@ -81,14 +78,14 @@ export default function ItemDetailPage({ onNavigate, selectedItem, setWaitlistDa
       }
 
       const response = await api.joinWaitlist({ itemId });
-      
+
       // Update the current waitlist entry with the new position
       setCurrentWaitlistEntry({
         itemId: itemId.toString(),
         position: response.position,
         item: selectedItem.name
       });
-      
+
       // Use the position from the backend response
       const waitlist = {
         position: response.position,
@@ -96,7 +93,7 @@ export default function ItemDetailPage({ onNavigate, selectedItem, setWaitlistDa
         facility: facilityName,
         expectedBack: selectedItem.expectedBack || 'TBD'
       };
-      
+
       setWaitlistData(waitlist);
       onNavigate('waitlistConfirmed');
     } catch (err) {
@@ -121,7 +118,7 @@ export default function ItemDetailPage({ onNavigate, selectedItem, setWaitlistDa
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-3">
-            <button
+            <button aria-label="Back to equipment search"
               onClick={() => onNavigate('filter')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
             >
@@ -142,7 +139,7 @@ export default function ItemDetailPage({ onNavigate, selectedItem, setWaitlistDa
                   {selectedItem.name}
                 </h2>
                 <p className="text-gray-600 mb-4">{selectedItem.description}</p>
-                
+
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Availability</p>
@@ -175,7 +172,7 @@ export default function ItemDetailPage({ onNavigate, selectedItem, setWaitlistDa
                   {selectedItem.name}
                 </h2>
                 <p className="text-gray-600 mb-4">
-                  {totalQuantity > 1 
+                  {totalQuantity > 1
                     ? `All ${totalQuantity} units currently unavailable`
                     : `Status: ${rawStatus || 'Unavailable'}`
                   } • Expected back: {selectedItem.expectedBack || 'TBD'}
@@ -191,7 +188,7 @@ export default function ItemDetailPage({ onNavigate, selectedItem, setWaitlistDa
                 <p className="text-sm text-red-700">{waitlistError}</p>
               </div>
             )}
-            
+
             {loadingWaitlist ? (
               <div className="w-full py-3 bg-gray-100 text-gray-500 font-semibold rounded-lg text-center">
                 Checking waitlist...

@@ -5,7 +5,7 @@ const { body, param, query, validationResult } = require('express-validator');
  */
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
-  
+
   if (!errors.isEmpty()) {
     return res.status(400).json({
       error: 'Validation Error',
@@ -15,7 +15,7 @@ const handleValidationErrors = (req, res, next) => {
       })),
     });
   }
-  
+
   next();
 };
 
@@ -29,6 +29,7 @@ const validateUserRegistration = [
     .isLength({ min: 2, max: 20 }).withMessage('NetID must be 2-20 characters'),
   body('email')
     .trim()
+    .toLowerCase()
     .notEmpty().withMessage('Email is required')
     .isEmail().withMessage('Must be a valid email'),
   body('password')
@@ -42,13 +43,14 @@ const validateUserRegistration = [
     .notEmpty().withMessage('Last name is required'),
   body('role')
     .optional()
-    .isIn(['student', 'staff', 'admin']).withMessage('Invalid role'),
+    .equals('student').withMessage('Public registration only creates student accounts'),
   handleValidationErrors,
 ];
 
 const validateUserLogin = [
   body('email')
     .trim()
+    .toLowerCase()
     .notEmpty().withMessage('Email is required')
     .isEmail().withMessage('Must be a valid email'),
   body('password')

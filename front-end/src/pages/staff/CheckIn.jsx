@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ArrowLeft, Package, X, Check, AlertCircle, Search, User } from 'lucide-react';
 import { useApiData } from '../../hooks/useApiData.js';
 import { api } from '../../services/api.js';
@@ -13,7 +13,7 @@ const CheckIn = ({ onNavigate, selectedItem: prefillData }) => {
   const [checkinLoading, setCheckinLoading] = useState(false);
   const [checkinError, setCheckinError] = useState(null);
   const [checkinSuccess, setCheckinSuccess] = useState(false);
-  
+
   // Active borrowals for the selected item
   const [itemBorrowals, setItemBorrowals] = useState([]);
   const [borrowalsLoading, setBorrowalsLoading] = useState(false);
@@ -22,7 +22,7 @@ const CheckIn = ({ onNavigate, selectedItem: prefillData }) => {
     initialData: { items: [] }
   });
 
-  const inventoryItems = data?.items ?? [];
+  const inventoryItems = useMemo(() => data?.items ?? [], [data?.items]);
 
   // Handle prefill data
   React.useEffect(() => {
@@ -36,7 +36,7 @@ const CheckIn = ({ onNavigate, selectedItem: prefillData }) => {
         }
       }
     }
-  }, [prefillData, inventoryItems]);
+  }, [prefillData, inventoryItems, selectedItem]);
 
   // Get overdue items for quick access
   const { data: overdueData } = useApiData('staffOverdue', {
@@ -46,14 +46,14 @@ const CheckIn = ({ onNavigate, selectedItem: prefillData }) => {
 
   // Live filter items - show checked out items first
   const filteredItems = useMemo(() => {
-    const checkedOutItems = inventoryItems.filter(i => 
+    const checkedOutItems = inventoryItems.filter(i =>
       i.status === 'checked-out' || i.availableQuantity < i.quantity
     );
-    
+
     if (!itemSearch.trim()) return checkedOutItems.slice(0, 8);
-    
+
     const query = itemSearch.toLowerCase();
-    return inventoryItems.filter(i => 
+    return inventoryItems.filter(i =>
       i.name.toLowerCase().includes(query) ||
       i.assetId?.toLowerCase().includes(query) ||
       i.category?.toLowerCase().includes(query) ||
@@ -75,7 +75,7 @@ const CheckIn = ({ onNavigate, selectedItem: prefillData }) => {
     setItemSearch('');
     setShowItemDropdown(false);
     setSelectedBorrowal(null);
-    
+
     // Fetch active borrowals for this item
     setBorrowalsLoading(true);
     try {
@@ -179,7 +179,7 @@ const CheckIn = ({ onNavigate, selectedItem: prefillData }) => {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <button
+          <button aria-label="Back to staff dashboard"
             onClick={() => onNavigate('dashboard')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
@@ -299,7 +299,7 @@ const CheckIn = ({ onNavigate, selectedItem: prefillData }) => {
                   </div>
                 </div>
               </div>
-              <button
+              <button aria-label="Clear selected item"
                 onClick={() => {
                   setSelectedItem(null);
                   setSelectedBorrowal(null);
@@ -343,7 +343,7 @@ const CheckIn = ({ onNavigate, selectedItem: prefillData }) => {
                   </div>
                 </div>
                 {itemBorrowals.length > 1 && (
-                  <button
+                  <button aria-label="Clear selected borrowal"
                     onClick={() => setSelectedBorrowal(null)}
                     className="p-2 hover:bg-violet-100 rounded-lg transition-colors"
                   >
@@ -482,8 +482,8 @@ const CheckIn = ({ onNavigate, selectedItem: prefillData }) => {
 
         {/* Click outside to close dropdown */}
         {showItemDropdown && (
-          <div 
-            className="fixed inset-0 z-0" 
+          <div
+            className="fixed inset-0 z-0"
             onClick={() => setShowItemDropdown(false)}
           />
         )}

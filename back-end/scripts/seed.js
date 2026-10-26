@@ -2,9 +2,9 @@
 
 /**
  * Database Seed Script for CAMP
- * 
+ *
  * Populates MongoDB with sample data for development and testing.
- * 
+ *
  * Usage:
  *   node scripts/seed.js
  *   node scripts/seed.js --drop  (drops existing data first)
@@ -28,7 +28,10 @@ const dropData = process.argv.includes('--drop');
 async function seed() {
   try {
     // Connect to database
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/camp-dev';
+    const mongoURI = process.env.MONGODB_URI;
+    if (!mongoURI || !/^mongodb:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/camp_demo(\?|$)/.test(mongoURI) || process.env.NODE_ENV === 'production') {
+      throw new Error('Seeding is restricted to a local database named camp_demo; no remote or production database is allowed');
+    }
     await mongoose.connect(mongoURI);
     console.log('✓ Connected to MongoDB');
 
@@ -113,12 +116,11 @@ async function seed() {
 
     // Create Users
     console.log('\n→ Creating users...');
-    
+
     // Hash password for all users
     const hashedPassword = await bcrypt.hash('Password123!', 10);
     const hashedStaffPassword = await bcrypt.hash('StaffPass123!', 10);
-    const hashedAdminPassword = await bcrypt.hash('AdminPass123!', 10);
-    
+
     const students = await User.insertMany([
       {
         netId: 'si2356',
@@ -272,7 +274,7 @@ async function seed() {
         condition: 'good',
         tags: ['charger', 'portable', 'power-bank']
       },
-      
+
       // ===== IM CENTER (INTERACTIVE MEDIA) EQUIPMENT =====
       {
         name: 'Meta Quest 3 VR Headset',
@@ -351,7 +353,7 @@ async function seed() {
         condition: 'good',
         tags: ['presenter', 'wireless', 'clicker']
       },
-      
+
       // ===== ARTS CENTER EQUIPMENT =====
       {
         name: 'Canon EOS R5',
@@ -585,9 +587,9 @@ async function seed() {
         tags: ['slider', 'video', 'cinematic']
       }
     ]);
-    
+
     // Set quantityAvailable equal to quantity for all items
-    await Promise.all(items.map(item => 
+    await Promise.all(items.map(item =>
       Item.findByIdAndUpdate(item._id, { quantityAvailable: item.quantity })
     ));
     console.log(`✓ Created ${items.length} items`);
@@ -759,7 +761,7 @@ async function seed() {
     console.log(`  - ${fines.length} fines`);
     console.log(`  - ${notifications.length} notifications`);
     console.log(`  - ${waitlistEntries.length} waitlist entries`);
-    
+
     console.log('\nTest Credentials:');
     console.log('  Student: si2356@univ.edu / Password123!');
     console.log('  Staff:   staff@univ.edu / StaffPass123!');
@@ -773,4 +775,5 @@ async function seed() {
   }
 }
 
-seed();
+if (require.main === module) seed();
+module.exports = seed;

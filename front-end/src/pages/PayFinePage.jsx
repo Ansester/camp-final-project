@@ -21,13 +21,13 @@ export default function PayFinePage({ onNavigate, selectedFine, setPaymentResult
     try {
       const transactionId = `R-${Math.floor(Math.random() * 90000) + 10000}`;
       const response = await api.payFine(selectedFine.id, {
-        paymentMethod: 'campus-cash',
+        paymentMethod: 'demo-campus-cash',
         transactionId
       });
-      
+
       const result = {
         amount: selectedFine.amount,
-        method: 'Campus Cash',
+        method: 'Demo Campus Cash',
         receipt: response.receiptId || transactionId,
         date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
         email: billingDetails.email
@@ -42,8 +42,7 @@ export default function PayFinePage({ onNavigate, selectedFine, setPaymentResult
   };
 
   if (!selectedFine) {
-    onNavigate('fines');
-    return null;
+    return <button onClick={() => onNavigate('fines')}>Choose a fine</button>;
   }
 
   return (
@@ -52,7 +51,7 @@ export default function PayFinePage({ onNavigate, selectedFine, setPaymentResult
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-3">
-            <button
+            <button aria-label="Back to fines"
               onClick={() => onNavigate('fines')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
             >
@@ -81,10 +80,10 @@ export default function PayFinePage({ onNavigate, selectedFine, setPaymentResult
           {/* Payment Method */}
           <div className="mt-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Payment method</h3>
-            
+
             <div className="p-4 border-2 border-gray-200 rounded-lg bg-gray-50">
-              <span className="text-lg text-gray-700 font-medium">Campus Cash</span>
-              <p className="text-sm text-gray-500 mt-1">Payment will be deducted from your Campus Cash balance</p>
+              <span className="text-lg text-gray-700 font-medium">Demo Campus Cash</span>
+              <p className="text-sm text-gray-500 mt-1">Uses the fictional balance in this coursework demo. No real payment is processed.</p>
             </div>
           </div>
         </div>
@@ -101,7 +100,7 @@ export default function PayFinePage({ onNavigate, selectedFine, setPaymentResult
               </button>
             </div>
           )}
-          
+
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-gray-700 font-medium">Name</span>
@@ -129,7 +128,7 @@ export default function PayFinePage({ onNavigate, selectedFine, setPaymentResult
           onClick={handlePayment}
           disabled={paying}
           className={`w-full py-4 font-bold text-lg rounded-xl transition-colors shadow-sm ${
-            paying 
+            paying
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
               : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
           }`}

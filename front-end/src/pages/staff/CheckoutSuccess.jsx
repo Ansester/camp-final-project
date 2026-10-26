@@ -12,7 +12,7 @@ export default function CheckoutSuccess({ onNavigate, borrowal }) {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
-          <button onClick={() => onNavigate('dashboard')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <button aria-label="Back to staff dashboard" onClick={() => onNavigate('dashboard')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
             <ArrowLeft className="w-6 h-6 text-gray-600" />
           </button>
           <h1 className="text-3xl font-bold text-gray-900">Check-Out Success</h1>

@@ -2,10 +2,9 @@ const express = require('express');
 const r = express.Router();
 const Borrowal = require('../models/Borrowal');
 const Item = require('../models/Item');
-const User = require('../models/User');
-const { createNotification, notifyWaitlistForItem } = require('../utils/notificationService');
+const { createNotification } = require('../utils/notificationService');
 const { authenticate, authorize } = require('../middleware/auth');
-const { validateBorrowalCreation, validateMongoId, validatePagination } = require('../middleware/validation');
+const { validateBorrowalCreation, validateMongoId } = require('../middleware/validation');
 
 // Helper to get validateMongoId middleware for 'id' param
 const validateId = validateMongoId('id');
@@ -71,8 +70,7 @@ r.get('/overdue', authenticate, authorize('staff', 'admin'), async (req, res) =>
   try {
     const borrowals = await Borrowal.find({ status: 'overdue' })
       .populate('user', 'firstName lastName netId email')
-      .populate('item', 'name category')
-      .populate('facility', 'name')
+      .populate({ path: 'item', select: 'name category facility', populate: { path: 'facility', select: 'name' } })
       .sort({ dueDate: 1 })
       .limit(50);
 
@@ -86,7 +84,7 @@ r.get('/overdue', authenticate, authorize('staff', 'admin'), async (req, res) =>
       },
       item: b.item.name,
       category: b.item.category,
-      facility: b.facility.name,
+      facility: b.item?.facility?.name || 'Unknown Facility',
       dueDate: b.dueDate.toISOString().split('T')[0],
       daysOverdue: b.daysOverdue
     }));
@@ -94,136 +92,26 @@ r.get('/overdue', authenticate, authorize('staff', 'admin'), async (req, res) =>
     res.json({ overdue });
   } catch (error) {
     console.error('Error fetching overdue borrowals:', error);
-    res.status(500).json({ 
-      error: 'Internal Server Error', 
-      message: 'Failed to fetch overdue borrowals' 
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch overdue borrowals'
     });
   }
 });
 
-// POST /api/borrowals/checkout - Check out an item (staff only)
-// POST /api/borrowals/checkout - Check out an item (staff only)
+const inventory = require('../utils/inventory');
+const populatedBorrowal = borrowal => borrowal.populate({ path: 'item', select: 'name category facility', populate: { path: 'facility', select: 'name location' } });
 r.post('/checkout', authenticate, authorize('staff', 'admin'), validateBorrowalCreation, async (req, res) => {
   try {
-    const { userId, itemId, dueDate } = req.body;
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ error: 'Not Found', message: 'User not found' });
-    }
-
-    const item = await Item.findById(itemId);
-    if (!item) {
-      return res.status(404).json({ error: 'Not Found', message: 'Item not found' });
-    }
-
-    if (item.status !== 'available') {
-      return res.status(400).json({ error: 'Bad Request', message: `Item is currently ${item.status}` });
-    }
-
-    const borrowal = new Borrowal({
-      user: userId,
-      item: itemId,
-      checkoutDate: new Date(),
-      dueDate: new Date(dueDate),
-      checkedOutBy: req.userId
-    });
-
-    await borrowal.save();
-
-    item.status = 'checked-out';
-    await item.save();
-
-    try {
-      await createNotification({
-        userId: userId,
-        type: 'borrowal',
-        title: 'Item checked out',
-        message: `You checked out "${item.name}". Due on ${new Date(dueDate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.`,
-        relatedItem: item._id,
-        relatedBorrowal: borrowal._id,
-        sendEmailNotification: true,
-      });
-    } catch (notifyErr) {
-      console.error('Checkout notification failed:', notifyErr);
-    }
-
-    res.status(201).json({
-      message: 'Item checked out successfully',
-      borrowal: await borrowal.populate({
-        path: 'item',
-        select: 'name category facility',
-        populate: { path: 'facility', select: 'name location' }
-      })
-    });
-  } catch (error) {
-    console.error('Error checking out item:', error);
-    res.status(500).json({ error: 'Internal Server Error', message: 'Failed to check out item' });
-  }
+    const borrowal = await inventory.checkout({ ...req.body, actorId: req.userId });
+    res.status(201).json({ message: 'Item checked out successfully', borrowal: await populatedBorrowal(borrowal) });
+  } catch (error) { res.status(error.status || 500).json({ error: error.status ? error.message : 'Checkout failed' }); }
 });
-
-// PUT /api/borrowals/:id/return - Return an item (staff only)
-// PUT /api/borrowals/:id/return - Return an item (staff only)
 r.put('/:id/return', authenticate, authorize('staff', 'admin'), validateId, async (req, res) => {
   try {
-    const { id } = req.params;
-    const { condition, notes } = req.body;
-
-    const borrowal = await Borrowal.findById(id);
-    if (!borrowal) {
-      return res.status(404).json({ error: 'Not Found', message: 'Borrowal not found' });
-    }
-
-    if (borrowal.status === 'returned') {
-      return res.status(400).json({ error: 'Bad Request', message: 'Item already returned' });
-    }
-
-    borrowal.status = 'returned';
-    borrowal.returnDate = new Date();
-    borrowal.conditionOnReturn = condition || 'good';
-    if (notes) borrowal.notes = notes;
-
-    await borrowal.save();
-
-    const item = await Item.findById(borrowal.item);
-    if (item) {
-      item.status = 'available';
-      await item.save();
-      
-      // Notify waitlist users that item is now available
-      try {
-        await notifyWaitlistForItem(item._id);
-      } catch (waitlistErr) {
-        console.error('Waitlist notification failed:', waitlistErr);
-      }
-    }
-
-    try {
-      await createNotification({
-        userId: borrowal.user,
-        type: 'borrowal',
-        title: 'Return confirmed',
-        message: `Thanks for returning "${item?.name || 'your item'}".`,
-        relatedItem: borrowal.item,
-        relatedBorrowal: borrowal._id,
-        sendEmailNotification: true,
-      });
-    } catch (notifyErr) {
-      console.error('Return notification failed:', notifyErr);
-    }
-
-    res.json({
-      message: 'Item returned successfully',
-      borrowal: await borrowal.populate({
-        path: 'item',
-        select: 'name category facility',
-        populate: { path: 'facility', select: 'name location' }
-      })
-    });
-  } catch (error) {
-    console.error('Error returning item:', error);
-    res.status(500).json({ error: 'Internal Server Error', message: 'Failed to return item' });
-  }
+    const { borrowal } = await inventory.checkin({ borrowalId: req.params.id, condition: req.body.condition, notes: req.body.notes, actorId: req.userId });
+    res.json({ message: 'Item returned successfully', borrowal: await populatedBorrowal(borrowal) });
+  } catch (error) { res.status(error.status || 500).json({ error: error.status ? error.message : 'Return failed' }); }
 });
 
 // PUT /api/borrowals/:id/renew - Renew a borrowal

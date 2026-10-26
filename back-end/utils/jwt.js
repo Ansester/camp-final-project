@@ -10,6 +10,7 @@ const generateToken = (userId, role) => {
   };
 
   return jwt.sign(payload, process.env.JWT_SECRET, {
+    algorithm: 'HS256',
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   });
 };
@@ -19,7 +20,8 @@ const generateToken = (userId, role) => {
  */
 const verifyToken = (token) => {
   try {
-    return jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+    return typeof decoded === 'object' && /^[a-f\d]{24}$/i.test(decoded.userId) ? decoded : null;
   } catch (error) {
     return null;
   }

@@ -4,16 +4,16 @@ export const API_BASE = process.env.REACT_APP_API_BASE ?? '' // empty in dev whe
 
 async function req(path, init) {
     const token = authUtils.getToken();
-    const headers = { 
-      'Content-Type': 'application/json', 
+    const headers = {
+      'Content-Type': 'application/json',
       ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-      ...(init?.headers || {}) 
+      ...(init?.headers || {})
     };
-  
+
   const res = await fetch(`${API_BASE}${path}`, {
-    credentials: 'include',
-    headers,
+    credentials: 'omit',
     ...init,
+    headers,
   });
   if (!res.ok) {
     // Auto-logout on 401 Unauthorized

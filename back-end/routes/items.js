@@ -9,36 +9,37 @@ const { validateItemCreation, validateItemUpdate, validateMongoId, validatePagin
 
 // Helper to get validateMongoId middleware for 'id' param
 const validateId = validateMongoId('id');
+const availableQuantity = (item, total, borrowed, reserved) => ['maintenance', 'retired'].includes(item.status) ? 0 : Math.max(0, total - borrowed - reserved);
 
 // GET /api/items - Get all items with optional filtering and pagination
 router.get("/", optionalAuth, validatePagination, async (req, res) => {
   try {
-    const { 
-      category, 
-      facility, 
-      status, 
-      search, 
-      page = 1, 
-      limit = 50 
+    const {
+      category,
+      facility,
+      status,
+      search,
+      page = 1,
+      limit = 50
     } = req.query;
 
     // Build query
     const query = { isActive: true };
-    
+
     if (category && category !== 'All') {
       query.category = category;
     }
-    
+
     if (facility && facility !== 'All') {
       query.facility = facility;
     }
-    
+
     if (status && status !== 'All') {
-      query.status = status === 'Available' ? 'available' : 
-                     status === 'Reserved' ? 'reserved' : 
+      query.status = status === 'Available' ? 'available' :
+                     status === 'Reserved' ? 'reserved' :
                      status.toLowerCase();
     }
-    
+
     if (search) {
       query.$text = { $search: search };
     }
@@ -56,22 +57,24 @@ router.get("/", optionalAuth, validatePagination, async (req, res) => {
     // Compute availableQuantity for each item based on active borrowals/reservations
     const itemsWithQuantity = await Promise.all(items.map(async (item) => {
       const itemObj = item.toObject();
-      const totalQty = itemObj.quantity || 1;
-      
+      const totalQty = itemObj.quantity ?? 1;
+
       // Count active borrowals for this item
       const activeBorrowals = await Borrowal.countDocuments({
         item: item._id,
         status: { $in: ['active', 'overdue'] }
       });
-      
+
       // Count active reservations for this item
       const activeReservations = await Reservation.countDocuments({
         item: item._id,
-        status: 'active'
+        status: { $in: ['pending', 'confirmed'] },
+        pickupDate: { $lte: new Date() },
+        expiryDate: { $gt: new Date() }
       });
-      
-      const availableQty = Math.max(0, totalQty - activeBorrowals - activeReservations);
-      
+
+      const availableQty = availableQuantity(item, totalQty, activeBorrowals, activeReservations);
+
       return {
         ...itemObj,
         quantity: totalQty,
@@ -89,7 +92,7 @@ router.get("/", optionalAuth, validatePagination, async (req, res) => {
       availabilities: ['All', 'Available', 'Reserved', 'Checked-out', 'Maintenance']
     };
 
-    res.json({ 
+    res.json({
       items: itemsWithQuantity,
       filters,
       facilities,
@@ -102,9 +105,9 @@ router.get("/", optionalAuth, validatePagination, async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching items:', error);
-    res.status(500).json({ 
-      error: 'Internal Server Error', 
-      message: 'Failed to fetch items' 
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch items'
     });
   }
 });
@@ -116,23 +119,25 @@ router.get("/:id", validateId, async (req, res) => {
       .populate('facility', 'name location contactEmail contactPhone operatingHours');
 
     if (!item || !item.isActive) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Not Found',
-        message: 'Item not found' 
+        message: 'Item not found'
       });
     }
 
     // Compute availableQuantity
-    const totalQty = item.quantity || 1;
+    const totalQty = item.quantity ?? 1;
     const activeBorrowals = await Borrowal.countDocuments({
       item: item._id,
       status: { $in: ['active', 'overdue'] }
     });
     const activeReservations = await Reservation.countDocuments({
       item: item._id,
-      status: 'active'
+      status: { $in: ['pending', 'confirmed'] },
+        pickupDate: { $lte: new Date() },
+        expiryDate: { $gt: new Date() }
     });
-    const availableQty = Math.max(0, totalQty - activeBorrowals - activeReservations);
+    const availableQty = availableQuantity(item, totalQty, activeBorrowals, activeReservations);
 
     const itemObj = item.toObject();
     res.json({
@@ -142,9 +147,9 @@ router.get("/:id", validateId, async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching item:', error);
-    res.status(500).json({ 
-      error: 'Internal Server Error', 
-      message: 'Failed to fetch item' 
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch item'
     });
   }
 });
@@ -153,29 +158,29 @@ router.get("/:id", validateId, async (req, res) => {
 router.get("/facility/:name", async (req, res) => {
   try {
     const facilityName = req.params.name.replace(/-/g, ' ');
-    const facility = await Facility.findOne({ 
+    const facility = await Facility.findOne({
       name: new RegExp(facilityName, 'i'),
-      isActive: true 
+      isActive: true
     });
 
     if (!facility) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Not Found',
-        message: 'Facility not found' 
+        message: 'Facility not found'
       });
     }
 
-    const items = await Item.find({ 
-      facility: facility._id, 
-      isActive: true 
+    const items = await Item.find({
+      facility: facility._id,
+      isActive: true
     }).populate('facility', 'name location');
 
     res.json(items);
   } catch (error) {
     console.error('Error fetching items by facility:', error);
-    res.status(500).json({ 
-      error: 'Internal Server Error', 
-      message: 'Failed to fetch items' 
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch items'
     });
   }
 });
@@ -193,9 +198,9 @@ router.post("/", authenticate, authorize('staff', 'admin'), validateItemCreation
     });
   } catch (error) {
     console.error('Error creating item:', error);
-    res.status(500).json({ 
-      error: 'Internal Server Error', 
-      message: 'Failed to create item' 
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to create item'
     });
   }
 });
@@ -206,13 +211,13 @@ router.put("/:id", authenticate, authorize('staff', 'admin'), validateItemUpdate
     const item = await Item.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     ).populate('facility', 'name location');
 
     if (!item) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Not Found',
-        message: 'Item not found' 
+        message: 'Item not found'
       });
     }
 
@@ -222,9 +227,9 @@ router.put("/:id", authenticate, authorize('staff', 'admin'), validateItemUpdate
     });
   } catch (error) {
     console.error('Error updating item:', error);
-    res.status(500).json({ 
-      error: 'Internal Server Error', 
-      message: 'Failed to update item' 
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to update item'
     });
   }
 });
@@ -235,13 +240,13 @@ router.delete("/:id", authenticate, authorize('staff', 'admin'), validateId, asy
     const item = await Item.findByIdAndUpdate(
       req.params.id,
       { isActive: false },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!item) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Not Found',
-        message: 'Item not found' 
+        message: 'Item not found'
       });
     }
 
@@ -251,15 +256,15 @@ router.delete("/:id", authenticate, authorize('staff', 'admin'), validateId, asy
     });
   } catch (error) {
     console.error('Error deleting item:', error);
-    res.status(500).json({ 
-      error: 'Internal Server Error', 
-      message: 'Failed to delete item' 
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to delete item'
     });
   }
 });
 
 // GET /api/items/:id/suggested - Get related/suggested items based on category and tags
-router.get("/:id/suggested", optionalAuth, validateId, async (req, res) => {
+router.get("/:id/suggested", optionalAuth, validateId, validatePagination, async (req, res) => {
   try {
     const { id } = req.params;
     const { limit = 4 } = req.query;
@@ -267,9 +272,9 @@ router.get("/:id/suggested", optionalAuth, validateId, async (req, res) => {
     // Get the original item
     const originalItem = await Item.findById(id);
     if (!originalItem) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Not Found',
-        message: 'Item not found' 
+        message: 'Item not found'
       });
     }
 
@@ -307,16 +312,18 @@ router.get("/:id/suggested", optionalAuth, validateId, async (req, res) => {
 
     // Compute availability for each suggested item
     const suggestionsWithAvailability = await Promise.all(suggestedItems.map(async (item) => {
-      const totalQty = item.quantity || 1;
+      const totalQty = item.quantity ?? 1;
       const activeBorrowals = await Borrowal.countDocuments({
         item: item._id,
         status: { $in: ['active', 'overdue'] }
       });
       const activeReservations = await Reservation.countDocuments({
         item: item._id,
-        status: 'active'
+        status: { $in: ['pending', 'confirmed'] },
+        pickupDate: { $lte: new Date() },
+        expiryDate: { $gt: new Date() }
       });
-      const availableQty = Math.max(0, totalQty - activeBorrowals - activeReservations);
+      const availableQty = availableQuantity(item, totalQty, activeBorrowals, activeReservations);
 
       return {
         id: item._id,
@@ -343,9 +350,9 @@ router.get("/:id/suggested", optionalAuth, validateId, async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting suggested items:', error);
-    res.status(500).json({ 
-      error: 'Internal Server Error', 
-      message: 'Failed to get suggested items' 
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to get suggested items'
     });
   }
 });

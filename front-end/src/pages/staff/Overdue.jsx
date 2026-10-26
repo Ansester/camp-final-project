@@ -15,7 +15,7 @@ const Overdue = ({ onNavigate }) => {
 
   const handleApplyFine = (item) => {
     // Pass user data to pre-fill the fines page
-    onNavigate('fines', { 
+    onNavigate('fines', {
       prefillStudent: {
         userId: item.userId,
         name: item.student,
@@ -31,7 +31,7 @@ const Overdue = ({ onNavigate }) => {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <button
+          <button aria-label="Back to staff dashboard"
             onClick={() => onNavigate('dashboard')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
